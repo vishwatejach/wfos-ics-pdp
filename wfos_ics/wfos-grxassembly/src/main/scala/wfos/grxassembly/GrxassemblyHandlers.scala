@@ -9,6 +9,7 @@ import csw.params.commands.CommandResponse._
 import csw.params.commands.ControlCommand
 import csw.time.core.models.UTCTime
 import csw.params.core.models.Id
+import csw.prefix.models.{Prefix, Subsystem}
 
 import scala.concurrent.ExecutionContextExecutor
 
@@ -25,9 +26,10 @@ class GrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswCo
   import cswCtx._
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
+  private val prefix: Prefix                        = cswCtx.componentInfo.prefix
 
   override def initialize(): Unit = {
-    log.info("Initializing grxAssembly...")
+    log.info(s"Assembly: $prefix initialize")
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
@@ -38,7 +40,9 @@ class GrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswCo
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
 
-  override def onShutdown(): Unit = {}
+  override def onShutdown(): Unit = {
+    log.info(s"Assembly: $prefix is shutting down")
+  }
 
   override def onGoOffline(): Unit = {}
 
