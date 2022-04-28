@@ -1,0 +1,11 @@
+[0m[[0m[0mdebug[0m] [0m[0mscalafmt: Adding repositories [https://repo1.maven.org/maven2/,https://jitpack.io][0m
+[0m[[0m[0mdebug[0m] [0m[0mscalafmt: parsed config (v3.3.2): /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/.scalafmt.conf[0m
+[0m[[0m[0mdebug[0m] [0m[0mscalafmt: considering all files (no git)[0m
+[0m[[0m[0mdebug[0m] [0m[0mscalafmt: Change report:[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Checked: /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy/src/main/scala/wfos/wfos-icsdeploy/WfosIcsHostConfigApp.scala, /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy/src/main/scala/wfos/wfos-icsdeploy/WfosIcsContainerCmdApp.scala[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Modified: /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy/src/main/scala/wfos/wfos-icsdeploy/WfosIcsHostConfigApp.scala, /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy/src/main/scala/wfos/wfos-icsdeploy/WfosIcsContainerCmdApp.scala[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Unmodified: [0m
+[0m[[0m[0mdebug[0m] [0m[0m	Added: /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy/src/main/scala/wfos/wfos-icsdeploy/WfosIcsHostConfigApp.scala, /home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy/src/main/scala/wfos/wfos-icsdeploy/WfosIcsContainerCmdApp.scala[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Removed: [0m
+[0m[[0m[0minfo[0m] [0m[0mscalafmt: Formatting 2 Scala sources (/home/lenovo/Desktop/PE-proj/wfos-ics-pdp/wfos_ics/wfos-wfos-icsdeploy)...[0m
+[0m[[0m[0mdebug[0m] [0m[0mscalafmt: Unchanged 2 Scala sources[0m
