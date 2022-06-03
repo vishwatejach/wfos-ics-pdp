@@ -5,8 +5,9 @@ TMT Common Software ([CSW](https://github.com/tmtsoftware/csw)) APIs.
 
 ## Subprojects
 
-* wfos-grxassembly - an assembly that talks to the wfos_ics HCD
-* wfos-linearhcd - an HCD that talks to the wfos_ics hardware
+* wfos-bgrxassembly - an blue grating assembly that talks to the wfos_ics HCD
+* wfos-lgripHcd - an linear gripper HCD that talks to the wfos_ics hardware
+* wfos-rgripHcd - an rotary gripper HCD that talks to the wfos_ics hardware
 * wfos-wfos-icsdeploy - for starting/deploying HCDs and assemblies
 
 ## Upgrading CSW Version
@@ -38,10 +39,21 @@ Note: while running the csw-services use the csw version from `project/build.pro
 
 Run the container cmd script with arguments. For example:
 
-* Run the HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
+* Run the linear gripper HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
 
 ```
-sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --standalone --local ./src/main/resources/LinearhcdStandalone.conf"
+sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --standalone --local ./src/main/resources/LgripHcdStandalone.conf"
+```
+* Run the rotary gripper HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
+
+```
+sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --standalone --local ./src/main/resources/RgripHcdStandalone.conf"
+```
+
+* Start the HCD and assembly in a container using the Scala implementations:
+
+```
+sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --local ./src/main/resources/WfosIcsContainer.conf"
 ```
 
 * Start the HCD and assembly in a container using the Java implementations:
