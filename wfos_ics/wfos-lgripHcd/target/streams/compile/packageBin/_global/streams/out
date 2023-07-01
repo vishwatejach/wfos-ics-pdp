@@ -1,0 +1,17 @@
+[0m[[0m[0mdebug[0m] [0m[0mPackaging /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/wfos-lgriphcd_2.13-0.1.0.jar ...[0m
+[0m[[0m[0mdebug[0m] [0m[0mInput file mappings:[0m
+[0m[[0m[0mdebug[0m] [0m[0m	reference.conf[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/reference.conf[0m
+[0m[[0m[0mdebug[0m] [0m[0m	wfos[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/wfos[0m
+[0m[[0m[0mdebug[0m] [0m[0m	wfos/lgripHcd[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/wfos/lgripHcd[0m
+[0m[[0m[0mdebug[0m] [0m[0m	wfos/lgripHcd/JlgripHcdBehaviorFactory.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/wfos/lgripHcd/JlgripHcdBehaviorFactory.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	wfos/lgripHcd/JlgripHcdHandlers.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/wfos/lgripHcd/JlgripHcdHandlers.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	wfos/lgripHcd/LgripHcdHandlers.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/wfos/lgripHcd/LgripHcdHandlers.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	wfos/lgripHcd/LgripHcdBehaviorFactory.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	  /home/prem/Desktop/tele/wfos-ics-pdp/wfos_ics/wfos-lgripHcd/target/scala-2.13/classes/wfos/lgripHcd/LgripHcdBehaviorFactory.class[0m
+[0m[[0m[0mdebug[0m] [0m[0mDone packaging.[0m
