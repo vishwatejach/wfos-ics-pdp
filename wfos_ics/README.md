@@ -42,12 +42,12 @@ Run the container cmd script with arguments. For example:
 * Run the linear gripper HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
 
 ```
-sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --standalone --local ./src/main/resources/LgripHcdStandalone.conf"
+sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --local ./src/main/resources/LgripHcdStandalone.conf"
 ```
 * Run the rotary gripper HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
 
 ```
-sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --standalone --local ./src/main/resources/RgripHcdStandalone.conf"
+sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --local ./src/main/resources/RgripHcdStandalone.conf"
 ```
 
 * Start the HCD and assembly in a container using the Scala implementations:
