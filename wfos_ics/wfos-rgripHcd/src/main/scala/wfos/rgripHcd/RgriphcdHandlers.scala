@@ -88,7 +88,7 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
 
     log.info(s"RgripHcd: Executing the received command: $setup")
     val targetAngle: Parameter[Int] = setup(RgripInfo.targetAngleKey)
-    val delay: Int                  = 1000
+    val delay: Int                  = 500
     log.info(s"RgripHcd: Gripper is at ${RgripInfo.currentAngle.head} degrees")
     if (RgripInfo.currentAngle.head > targetAngle.head) {
       while (RgripInfo.currentAngle.head != targetAngle.head) {

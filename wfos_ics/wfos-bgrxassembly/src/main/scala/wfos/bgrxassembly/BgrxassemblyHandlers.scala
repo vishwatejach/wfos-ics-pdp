@@ -121,6 +121,8 @@ import csw.prefix.models.{Prefix, Subsystem}
 import csw.params.core.generics.{Key, KeyType, Parameter}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.util.{Success, Failure}
+// import scala.concurrent.duration._
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -171,12 +173,15 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
     log.info("Bgrx Assembly: Locations of components in the assembly are updated")
-    log.debug(s"Bgrx Assembly: onLocationTrackingEvent called: $trackingEvent")
+    log.info(s"Bgrx Assembly: onLocationTrackingEvent called: $trackingEvent")
     trackingEvent match {
       case LocationUpdated(location) => {
+
         // hcdLocation = location.asInstanceOf[AkkaLocation]
         // log.info(s"$hcdLocation")
+
         hcdCS = Some(CommandServiceFactory.make(location))
+
         sendCommand(Id("AssemblyCommand-1"))
       }
       case LocationRemoved(connection) => log.info("Location Removed")
@@ -223,6 +228,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
               }
             }
           }
+          case CommandName("check") => { Accepted(runId) }
           case _ => {
             log.error(s"Bgrx Assembly: Validation is Failure. $sourcePrefix takes only 'move' Setup as commands")
             Invalid(runId, UnsupportedCommandIssue(s"$sourcePrefix takes only 'move' Setup as commands"))
