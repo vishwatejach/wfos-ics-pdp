@@ -277,18 +277,54 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     log.info(s"Bgrx Assembly: handling command: ${controlCommand.commandName} $controlCommand")
     controlCommand match {
       case setup: Setup => {
-        hcdCS match {
-          case Some(cs) => {
-            cs.submit(controlCommand)
-            Completed(runId)
+        // 1) check if hcd is at home position or not
+
+      }
+      case _: Observe => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
+    }
+
+    hcdCS match {
+      case Some(cs) => {
+        val submitResponseFuture: Future[SubmitResponse] = cs.submit(controlCommand)
+
+        // Handle the completion of the future
+        submitResponseFuture.onComplete {
+          case Success(response) => {
+            log.info(s"Bgrx Assembly: Command submitted successfully: $response")
+
+            // Handle the different response types
+            response match {
+              case Completed(_, result) => {
+                // Perform actions for a completed command
+                // You can log, update state, or send other messages as needed
+                log.info(s"Bgrx Assembly: Command is executed successfully")
+                Completed(runId)
+              }
+              case Invalid(_, issue) => {
+                // Handle the invalid command issue
+                // You can log, handle errors, or take other actions
+                log.error(s"Bgrx Assembly: Command execution failed with error: $issue")
+                Invalid(runId, issue)
+              }
+              case _ => {
+                // Handle other response types if necessary
+                Completed(runId)
+              }
+            }
           }
-          case None => {
-            log.error("no HCD available to send the command")
-            Error(runId, s"A needed HCD is not available: ${hcdConnection.componentId}")
+          case Failure(ex) => {
+            log.error(s"Error submitting command: ${ex.getMessage}")
+            // Handle the error case if needed
+            Invalid(runId, UnsupportedCommandIssue(" "))
           }
         }
+
+        Started(runId) // Return a Started response immediately
       }
-      case _: Observe => Invalid(runId, UnsupportedCommandIssue("Observe commands not supported"))
+      case None => {
+        log.error("No HCD available to send the command")
+        Error(runId, s"A needed HCD is not available: ${hcdConnection.componentId}")
+      }
     }
   }
 
