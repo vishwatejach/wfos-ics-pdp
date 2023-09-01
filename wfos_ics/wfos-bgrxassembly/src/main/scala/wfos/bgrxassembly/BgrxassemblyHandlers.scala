@@ -1,105 +1,3 @@
-// package wfos.bgrxassembly
-
-// import akka.actor.typed.Scheduler
-// import akka.actor.typed.scaladsl.ActorContext
-// //import akka.util.Timeout
-// //import com.typesafe.config.ConfigFactory
-// import csw.command.client.messages.TopLevelActorMessage
-// import csw.framework.models.CswContext
-// import csw.framework.scaladsl.ComponentHandlers
-// import csw.location.api.models.TrackingEvent
-// import csw.params.commands.CommandIssue.UnsupportedCommandIssue
-// import csw.params.commands.CommandResponse._
-// import csw.params.commands.{CommandName, ControlCommand, Setup}
-// import csw.params.core.models.Id
-// import csw.prefix.models.Prefix
-// import csw.time.core.models.UTCTime
-// import wfos.bgrxassembly.models.{BluegrxPosition, GripperPosition}
-// import wfos.bgrxassembly.command.{BlueSelectCommand, SelectCommand}
-// import wfos.bgrxassembly.events.{BlueGrxPositionEvent, BgrxPositionEvent}
-
-// //import scala.concurrent.duration.{DurationInt, FiniteDuration}
-// import scala.concurrent.ExecutionContext
-
-// class bgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswContext) extends ComponentHandlers(ctx, cswCtx) {
-
-//   import cswCtx._
-//   implicit val a: Scheduler = ctx.system.scheduler
-
-//   implicit val ec: ExecutionContext = ctx.executionContext
-//   private val log                   = loggerFactory.getLogger
-//   private val prefix: Prefix        = cswCtx.componentInfo.prefix
-
-//   val initialPosition: GripperPosition       = BluegrxPosition.left_edge
-//   val filterPositionEvent: BgrxPositionEvent = new BlueGrxPositionEvent(prefix)
-
-//   val selectCommand: SelectCommand = BlueSelectCommand
-
-//   override def initialize(): Unit = {
-//     log.info(s"Assembly: $prefix initialize")
-//   }
-
-//   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
-
-//   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = {
-//     val validateParamsRes = controlCommand match {
-//       case cmd: Setup => validateSetupParams(runId, cmd)
-//       case observe    => Invalid(runId, UnsupportedCommandIssue(s"$observe command not supported."))
-//     }
-//     validateParamsRes
-//   }
-
-//   private def validateSelectParams(runId: Id, setup: Setup): ValidateCommandResponse =
-//     selectCommand.Validate(setup) match {
-//       case Right(_) => Accepted(runId)
-//       case Left(commandIssue) =>
-//         log.error(s"grx Assembly: Failed to validate, reason ${commandIssue.reason}")
-//         Invalid(runId, UnsupportedCommandIssue(s"Validation Failed"))
-//     }
-
-//   private def validateSetupParams(runId: Id, setup: Setup): ValidateCommandResponse =
-//     setup.commandName match {
-//       case selectCommand.Name => validateSelectParams(runId, setup)
-//       case CommandName(name) =>
-//         val errMsg = s"grx Assembly: Setup command: $name not supported."
-//         log.error(errMsg)
-//         Invalid(runId, UnsupportedCommandIssue(errMsg))
-//     }
-
-//   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
-//     controlCommand match {
-//       case setup: Setup => handleSelect(runId, setup)
-//       case observe      => Invalid(runId, UnsupportedCommandIssue(s"$observe commmand not supported."))
-//     }
-//   }
-
-//   def handleSelect(runId: Id, setup: Setup): SubmitResponse = {
-//     selectCommand.Validate(setup) match {
-//       case Right(targetAngle) =>
-//         log.info(s"Gripper Assembly: Rotating gripper to target angle: $targetAngle")
-// //        filterActor ! GripperCommand.Move(BluegrxPosition.right_edge, runId)
-//         Started(runId)
-//       case Left(commandIssue) =>
-//         log.error(s"Gripper Assembly: Failed to retrieve target Angle, reason: ${commandIssue.reason}")
-//         Invalid(runId, commandIssue)
-//     }
-//   }
-
-//   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
-
-//   override def onShutdown(): Unit = {
-//     log.info(s"Assembly: $prefix is shutting down")
-//   }
-
-//   override def onGoOffline(): Unit = {}
-
-//   override def onGoOnline(): Unit = {}
-
-//   override def onDiagnosticMode(startTime: UTCTime, hint: String): Unit = {}
-
-//   override def onOperationsMode(): Unit = {}
-
-// }
 package wfos.bgrxassembly
 
 import akka.actor.typed.ActorSystem
@@ -108,8 +6,8 @@ import csw.command.client.messages.TopLevelActorMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.params.commands.CommandResponse._
-import csw.params.commands.{ControlCommand, CommandName, Setup, Observe, CommandIssue}
-import csw.params.commands.CommandIssue.{MissingKeyIssue, ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
+import csw.params.commands.{ControlCommand, CommandName, Setup, Observe}
+import csw.params.commands.CommandIssue.{UnsupportedCommandIssue}
 import csw.time.core.models.UTCTime
 import csw.params.core.models.{Id, ObsId}
 
@@ -122,6 +20,10 @@ import csw.params.core.generics.{Key, KeyType, Parameter}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Success, Failure}
+
+import wfos.bgrxassembly.config.{RgripInfo, LgripInfo}
+import wfos.bgrxassembly.components.{RgripHcd, LgripHcd}
+
 // import scala.concurrent.duration._
 
 /**
@@ -143,28 +45,17 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   private val hcdConnection = AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "rgripHcd"), ComponentType.HCD))
   // private var hcdLocation: AkkaLocation     = _
-  private var hcdCS: Option[CommandService] = None
+  private var rgripHcdCS: Option[CommandService] = None
+  private var lgripHcdCS: Option[CommandService] = None
 
-  // Keys, parameters and Commands
-  val sourcePrefix: Prefix        = Prefix("CSW.wfos.bgrxassembly")
-  val targetAngleKey: Key[Int]    = KeyType.IntKey.make("targetAngle")
-  val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")
-  val cwKey: Key[Int]             = KeyType.IntKey.make("cw")
+  private val rgripHcd: RgripHcd = new RgripHcd()
+  private val lgripHcd: LgripHcd = new LgripHcd()
 
-  // ranges of targetAngle
-  val minTargetAngleKey: Key[Int]    = KeyType.IntKey.make("minTargetAngle")
-  val minTargetAngle: Parameter[Int] = minTargetAngleKey.set(0)
+  // keys of Hcd names
+  private val hcdNameKey: Key[String] = KeyType.StringKey.make("hcdName")
 
-  val maxTargetAngleKey: Key[Int]    = KeyType.IntKey.make("maxTargetAngle")
-  val maxTargetAngle: Parameter[Int] = maxTargetAngleKey.set(55)
-
-  // ranges of target CommonWavelength
-  val minCWKey: Key[Int]    = KeyType.IntKey.make("minCW")
-  val minCW: Parameter[Int] = minCWKey.set(3100)
-
-  val maxCWKey: Key[Int]    = KeyType.IntKey.make("maxCW")
-  val maxCW: Parameter[Int] = maxCWKey.set(9000)
-
+  // Prefix of assembly
+  val sourcePrefix: Prefix = Prefix("wfos.bgrxassembly")
   private val obsId: ObsId = ObsId("2023A-001-123")
 
   override def initialize(): Unit = {
@@ -172,27 +63,37 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
-    log.info("Bgrx Assembly: Locations of components in the assembly are updated")
-    log.info(s"Bgrx Assembly: onLocationTrackingEvent called: $trackingEvent")
+    log.info("Bgrx Assembly : Locations of components in the assembly are updated")
+    log.info(s"Bgrx Assembly : onLocationTrackingEvent is called")
     trackingEvent match {
       case LocationUpdated(location) => {
 
-        // hcdLocation = location.asInstanceOf[AkkaLocation]
-        // log.info(s"$hcdLocation")
-
-        hcdCS = Some(CommandServiceFactory.make(location))
-
-        sendCommand(Id("AssemblyCommand-1"))
+        location.connection match {
+          case AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "rgriphcd"), _)) => {
+            log.info("Bgrx Assembly : Creating command service to RgripHcd")
+            rgripHcdCS = Some(CommandServiceFactory.make(location))
+          }
+          case AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "lgriphcd"), _)) => {
+            log.info("Bgrx Assembly : Creating command service to LgripHcd")
+            lgripHcdCS = Some(CommandServiceFactory.make(location))
+          }
+          case _ => log.info("Unknown HCD encountered")
+        }
       }
       case LocationRemoved(connection) => log.info("Location Removed")
+    }
+    if (rgripHcdCS != None && lgripHcdCS != None) {
+      log.info("Bgrx Assembly : All HCDs are successfully initialized")
+      sendCommand(Id("bgrx"))
     }
   }
 
   private def sendCommand(runId: Id): SubmitResponse = {
-    val targetAngle: Parameter[Int]    = targetAngleKey.set(30)
-    val gratingMode: Parameter[String] = gratingModeKey.set("bgid3")
-    val cw: Parameter[Int]             = cwKey.set(6000)
-    val sc1: Setup                     = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
+    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(30)
+    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
+    val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
+    var hcdName: Parameter[String]     = hcdNameKey.set("wfos.rgriphcd")
+    val sc1: Setup                     = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(hcdName, targetAngle, gratingMode, cw)
 
     val validateResponse = validateCommand(runId, sc1)
     validateResponse match {
@@ -202,85 +103,46 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   }
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = {
-    log.info(s"Bgrx Assembly: Command - $runId is being validated")
+    log.info(s"Bgrx Assembly : Command - $runId is being validated")
 
     controlCommand match {
       case setup: Setup =>
-        log.info("Bgrx Assembly: Command type validation is Successful")
-        log.info("Bgrx Assembly: Validating command name")
+        log.info("Bgrx Assembly : Command type validation is Successful")
+        log.info("Bgrx Assembly : Validating command name")
 
         setup.commandName match {
           case CommandName("move") => {
 
-            log.info("Bgrx Assembly: Command name validation is successful")
-            log.info("Bgrx Assembly: Validating Parameters")
+            log.info("Bgrx Assembly : Command name validation is successful")
+            log.info("Bgrx Assembly : Validating Parameters")
 
-            val validateParamasRes = validateParams(setup)
+            log.info(s"${setup.paramSet}")
+            val validateParamasRes = rgripHcd.validateParameters(setup)
             validateParamasRes match {
 
               case Right(_) => {
-                log.info("Bgrx Assembly: Parameters' validation is Successful")
+                log.info("Bgrx Assembly : Parameters' validation is Successful")
                 Accepted(runId)
               }
               case Left(error) => {
-                log.error(s"RgrpHcd: Validation is Failure. ${error.reason}")
-                Invalid(runId, error)
+                log.error(s"RgrpHcd: Validation is Failure. ${error}")
+                Invalid(runId, UnsupportedCommandIssue("sda"))
               }
             }
           }
-          case CommandName("check") => { Accepted(runId) }
           case _ => {
-            log.error(s"Bgrx Assembly: Validation is Failure. $sourcePrefix takes only 'move' Setup as commands")
+            log.error(s"Bgrx Assembly : Validation is Failure. $sourcePrefix takes only 'move' Setup as commands")
             Invalid(runId, UnsupportedCommandIssue(s"$sourcePrefix takes only 'move' Setup as commands"))
           }
         }
       case _: Observe =>
-        log.error(s"Bgrx Assembly: Validation is Failure. $sourcePrefix prefix only accepts Setup Commands")
+        log.error(s"Bgrx Assembly : Validation is Failure. $sourcePrefix prefix only accepts Setup Commands")
         Invalid(runId, UnsupportedCommandIssue("Observe commands are not supported"))
     }
   }
 
-  private def validateParams(setup: Setup): Either[CommandIssue, Parameter[Int]] = {
-    val issueOraccepted = for {
-      bgid        <- setup.get(gratingModeKey).toRight(MissingKeyIssue("bgid not found"))
-      targetAngle <- setup.get(targetAngleKey).toRight(MissingKeyIssue("targetAngle not found"))
-      cw          <- setup.get(cwKey).toRight(MissingKeyIssue("CW not found"))
-      // _           <- setup.get(GratingModeKey).toRight(CommandIssue.WrongParameterTypeIssue("GratingMode not found"))
-      _     <- inRange(cw, minCW, maxCW)
-      _     <- inRange(targetAngle, minTargetAngle, maxTargetAngle)
-      param <- validateParam(bgid, targetAngle)
-    } yield param
-    issueOraccepted
-  }
-
-  private def inRange(parameter: Parameter[Int], minVal: Parameter[Int], maxVal: Parameter[Int]) = {
-    if (parameter.head >= minVal.head & parameter.head <= maxVal.head) Right(parameter)
-    else Left(ParameterValueOutOfRangeIssue(s"${parameter.keyName} should be in range of $minVal and $maxVal"))
-  }
-
-  private def validateParam(bgid: Parameter[String], targetAngle: Parameter[Int]) = {
-    bgid.head match {
-      case "bgid1" =>
-        if (targetAngle.values.head == 0) Right(targetAngle)
-        else Left(ParameterValueOutOfRangeIssue(s"TargetAngle should be in the given grating mode's range"))
-      case "bgid2" =>
-        if (targetAngle.values.head == 15) Right(targetAngle)
-        else Left(ParameterValueOutOfRangeIssue(s"TargetAngle should be in the given grating mode's range"))
-      case "bgid3" =>
-        if (targetAngle.values.head >= 25 & targetAngle.values.head <= 35) Right(targetAngle)
-        else Left(ParameterValueOutOfRangeIssue(s"TargetAngle should be in the given grating mode's range"))
-      case "bgid4" =>
-        if (targetAngle.values.head == 45) Right(targetAngle)
-        else Left(ParameterValueOutOfRangeIssue(s"TargetAngle should be in the given grating mode's range"))
-      case "bgid5" =>
-        if (targetAngle.values.head == 45) Right(targetAngle)
-        else Left(ParameterValueOutOfRangeIssue(s"TargetAngle should be in the given grating mode's range"))
-      case _ => Left(CommandIssue.WrongParameterTypeIssue(s"Wrong Grating Mode"))
-    }
-  }
-
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
-    log.info(s"Bgrx Assembly: handling command: ${controlCommand.commandName} $controlCommand")
+    log.info(s"Bgrx Assembly : handling command: $runId")
     controlCommand match {
       case setup: Setup => {
         // 1) check if hcd is at home position or not
@@ -289,27 +151,27 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
       case _: Observe => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
     }
 
-    hcdCS match {
+    rgripHcdCS match {
       case Some(cs) => {
         val submitResponseFuture: Future[SubmitResponse] = cs.submit(controlCommand)
 
         // Handle the completion of the future
         submitResponseFuture.onComplete {
           case Success(response) => {
-            log.info(s"Bgrx Assembly: Command submitted successfully: $response")
+            log.info(s"Bgrx Assembly : Command submitted successfully: $response")
 
             // Handle the different response types
             response match {
               case Completed(_, result) => {
                 // Perform actions for a completed command
                 // You can log, update state, or send other messages as needed
-                log.info(s"Bgrx Assembly: Command is executed successfully")
+                log.info(s"Bgrx Assembly : Command is executed successfully")
                 Completed(runId)
               }
               case Invalid(_, issue) => {
                 // Handle the invalid command issue
                 // You can log, handle errors, or take other actions
-                log.error(s"Bgrx Assembly: Command execution failed with error: $issue")
+                log.error(s"Bgrx Assembly : Command execution failed with error: $issue")
                 Invalid(runId, issue)
               }
               case _ => {

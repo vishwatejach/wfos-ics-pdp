@@ -1,4 +1,4 @@
-package wfos.lgriphcd.shared
+package wfos.bgrxassembly.config
 
 // import csw.params.commands.CommandName
 import csw.params.core.generics.{Key, KeyType, Parameter}
@@ -12,8 +12,8 @@ object LgripInfo {
   val homePositionKey: Key[Int]    = KeyType.IntKey.make("homePosition")
   val homePosition: Parameter[Int] = homePositionKey.set(0)
 
-  val currentPositionKey: Key[Int]    = KeyType.IntKey.make("currentPosition")
-  var currentPosition: Parameter[Int] = currentPositionKey.set(0)
+//   val currentPositionKey: Key[Int]    = KeyType.IntKey.make("currentPosition")
+//   var currentPosition: Parameter[Int] = currentPositionKey.set(35)
 
   val targetPositionKey: Key[Int] = KeyType.IntKey.make("targetPosition")
   val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")
@@ -25,13 +25,6 @@ object LgripInfo {
 
   val maxTargetPositionKey: Key[Int]    = KeyType.IntKey.make("maxTargetPosition")
   val maxTargetPosition: Parameter[Int] = maxTargetPositionKey.set(100)
-
-  // ranges of target CommonWavelength
-  val minCWKey: Key[Int]    = KeyType.IntKey.make("minCW")
-  val minCW: Parameter[Int] = minCWKey.set(3100)
-
-  val maxCWKey: Key[Int]    = KeyType.IntKey.make("maxCW")
-  val maxCW: Parameter[Int] = maxCWKey.set(9000)
 
   val obsId: ObsId = ObsId("2023A-001-123")
 }
