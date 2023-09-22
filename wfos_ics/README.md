@@ -39,12 +39,12 @@ Note: while running the csw-services use the csw version from `project/build.pro
 
 Run the container cmd script with arguments. For example:
 
-* Run the linear gripper HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
+* Run the lgripHCD in a standalone mode with a local config file (The standalone config format is different than the container format):
 
 ```
 sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --local ./src/main/resources/LgripHcdStandalone.conf"
 ```
-* Run the rotary gripper HCD in a standalone mode with a local config file (The standalone config format is different than the container format):
+* Run the rgripHCD in a standalone mode with a local config file (The standalone config format is different than the container format):
 
 ```
 sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --local ./src/main/resources/RgripHcdStandalone.conf"

@@ -6,10 +6,11 @@ import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
-import csw.params.core.models.{Id, Units}
+import csw.params.core.models.{Id}
 import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
-import csw.params.commands.{ControlCommand, Observe, Setup}
-import csw.params.core.generics.{Parameter}
+import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
+// import csw.params.core.generics.{Parameter}
+import csw.params.core.generics.{Key, KeyType, Parameter}
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
@@ -33,37 +34,41 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   // Called when the component is created
   override def initialize(): Unit = {
     log.info(s"Initializing $prefix")
-    log.info(s"Checking if $prefix is at home position")
+    log.info(s"RgripHcd : Checking if $prefix is at home position")
 
-    log.info(s"${RgripInfo.exchangeAngle.head}, ${RgripInfo.currentAngle.head}")
-    // if (currentAngle.head != RgripInfo.homeAngle.head) {
-    //   log.error("RgripHcd: gripper is not at the exchange position")
+    val ik: Key[Int]            = KeyType.IntKey.make("IKey")
+    val ikValue: Parameter[Int] = ik.set(1)
+    log.info(s"IK value : ${ikValue.value(0)}")
 
-    //   val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(33)
-    //   val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
-    //   val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
-    //   val sc1: Setup                     = Setup(prefix, CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
+    log.info(s"RgripHcd : Home Position - ${RgripInfo.exchangeAngle.values.head}, Current Position - ${RgripInfo.currentAngle.values.head}")
+    if (RgripInfo.currentAngle.values.head != RgripInfo.homeAngle.values.head) {
+      log.error("RgripHcd : gripper is not at the exchange position")
 
-    //   val validateResponse = validateCommand(Id(), sc1)
-    //   validateResponse match {
-    //     case Accepted(runId) => onSubmit(runId, sc1)
-    //     case Invalid(runId, commandissue) => {
-    //       log.error("RgripHcd: Validation Failure")
-    //       // log.info(s"${validateResponse.commandissue}")
-    //       log.error(s"$commandissue")
-    //       Invalid(runId, commandissue)
-    //     }
-    //   }
-    // }
-    // else {
-    //   log.info("RgripHcd: Gripper is at exchange position")
-    // }
+      val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(RgripInfo.homeAngle.head)
+      val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
+      val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
+      val sc1: Setup                     = Setup(prefix, CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
+
+      val validateResponse = validateCommand(Id(), sc1)
+      validateResponse match {
+        case Accepted(runId) => onSubmit(runId, sc1)
+        case Invalid(runId, commandissue) => {
+          log.error("RgripHcd : Validation Failure")
+          // log.info(s"${validateResponse.commandissue}")
+          log.error(s"$commandissue")
+          Invalid(runId, commandissue)
+        }
+      }
+    }
+    else {
+      log.info("RgripHcd : Gripper is at exchange position")
+    }
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = {
-    log.info(s"RgripHcd: Command - $runId is being validated")
+    log.info(s"RgripHcd: Command($runId) is being validated")
     controlCommand match {
       case setup: Setup => {
         val targetAngle = setup(RgripInfo.targetAngleKey)
@@ -88,7 +93,7 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
 
     log.info(s"RgripHcd: Executing the received command: $setup")
     val targetAngle: Parameter[Int] = setup(RgripInfo.targetAngleKey)
-    val delay: Int                  = 1000
+    val delay: Int                  = 500
     log.info(s"RgripHcd: Gripper is at ${RgripInfo.currentAngle.head} degrees")
     if (RgripInfo.currentAngle.head > targetAngle.head) {
       while (RgripInfo.currentAngle.head != targetAngle.head) {

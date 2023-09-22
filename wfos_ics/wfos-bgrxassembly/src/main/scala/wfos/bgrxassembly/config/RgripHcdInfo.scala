@@ -1,9 +1,8 @@
-package wfos.rgriphcd.shared
+package wfos.bgrxassembly.config
 
-import csw.params.commands.CommandName
+// import csw.params.commands.CommandName
 import csw.params.core.generics.{Key, KeyType, Parameter}
-import csw.params.core.models.{Id, Units, ObsId}
-import csw.prefix.models.Prefix
+import csw.params.core.models.{ObsId}
 
 object RgripInfo {
   // rgripHcd configurations
@@ -13,8 +12,8 @@ object RgripInfo {
   val homeAngleKey: Key[Int]    = KeyType.IntKey.make("homeAngle")
   val homeAngle: Parameter[Int] = homeAngleKey.set(35)
 
-  val currentAngleKey: Key[Int]    = KeyType.IntKey.make("currentAngle")
-  var currentAngle: Parameter[Int] = currentAngleKey.set(35)
+//   val currentAngleKey: Key[Int]    = KeyType.IntKey.make("currentAngle")
+//   var currentAngle: Parameter[Int] = currentAngleKey.set(35)
 
   val targetAngleKey: Key[Int]    = KeyType.IntKey.make("targetAngle")
   val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")

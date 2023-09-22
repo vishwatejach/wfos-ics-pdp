@@ -18,12 +18,18 @@ lazy val `wfos-bgrxassembly` = project
 
 // hcd module
 lazy val `wfos-lgripHcd` = project
+  .dependsOn(
+    `wfos-bgrxassembly`
+  )
   .settings(
     libraryDependencies ++= Dependencies.lgripHcd
   )
 
   // hcd module
 lazy val `wfos-rgripHcd` = project
+  .dependsOn(
+    `wfos-bgrxassembly`
+  )
   .settings(
     libraryDependencies ++= Dependencies.rgripHcd
   )
