@@ -1,6 +1,5 @@
 package wfos.bgrxassembly.config
 
-// import csw.params.commands.CommandName
 import csw.params.core.generics.{Key, KeyType, Parameter}
 import csw.params.core.models.{ObsId}
 
@@ -12,12 +11,12 @@ object LgripInfo {
   val homePositionKey: Key[Int]    = KeyType.IntKey.make("homePosition")
   val homePosition: Parameter[Int] = homePositionKey.set(0)
 
-//   val currentPositionKey: Key[Int]    = KeyType.IntKey.make("currentPosition")
-//   var currentPosition: Parameter[Int] = currentPositionKey.set(35)
+  val currentPositionKey: Key[Int]    = KeyType.IntKey.make("currentPosition")
+  var currentPosition: Parameter[Int] = currentPositionKey.set(0)
 
   val targetPositionKey: Key[Int] = KeyType.IntKey.make("targetPosition")
-  val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")
-  val cwKey: Key[Int]             = KeyType.IntKey.make("cw")
+  // val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")
+  // val cwKey: Key[Int]             = KeyType.IntKey.make("cw")
 
   // ranges of targetPosition
   val minTargetPositionKey: Key[Int]    = KeyType.IntKey.make("minTargetPosition")

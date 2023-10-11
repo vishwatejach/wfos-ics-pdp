@@ -10,11 +10,11 @@ import csw.params.core.models.{Id}
 import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
 import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
 // import csw.params.core.generics.{Parameter}
-import csw.params.core.generics.{Key, KeyType, Parameter}
+import csw.params.core.generics.{Key, Parameter}
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
-import wfos.rgriphcd.shared.RgripInfo
+import wfos.bgrxassembly.config.RgripInfo
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -36,9 +36,9 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
     log.info(s"Initializing $prefix")
     log.info(s"RgripHcd : Checking if $prefix is at home position")
 
-    val ik: Key[Int]            = KeyType.IntKey.make("IKey")
-    val ikValue: Parameter[Int] = ik.set(1)
-    log.info(s"IK value : ${ikValue.value(0)}")
+    // val ik: Key[Int]            = KeyType.IntKey.make("IKey")
+    // val ikValue: Parameter[Int] = ik.set(1)
+    // log.info(s"IK value : ${ikValue.value(0)}")
 
     log.info(s"RgripHcd : Home Position - ${RgripInfo.exchangeAngle.values.head}, Current Position - ${RgripInfo.currentAngle.values.head}")
     if (RgripInfo.currentAngle.values.head != RgripInfo.homeAngle.values.head) {
@@ -95,6 +95,9 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
     val targetAngle: Parameter[Int] = setup(RgripInfo.targetAngleKey)
     val delay: Int                  = 500
     log.info(s"RgripHcd: Gripper is at ${RgripInfo.currentAngle.head} degrees")
+
+    Started(runId)
+
     if (RgripInfo.currentAngle.head > targetAngle.head) {
       while (RgripInfo.currentAngle.head != targetAngle.head) {
         RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head - 1)

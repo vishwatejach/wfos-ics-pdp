@@ -13,7 +13,7 @@ import csw.params.core.generics.{Parameter}
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
-import wfos.lgriphcd.shared.LgripInfo
+import wfos.bgrxassembly.config.LgripInfo
 import wfos.bgrxassembly.components.{RgripHcd, LgripHcd}
 
 /**
@@ -95,14 +95,14 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
     if (LgripInfo.currentPosition.head > targetPosition.head) {
       while (LgripInfo.currentPosition.head != targetPosition.head) {
         LgripInfo.currentPosition = LgripInfo.currentPositionKey.set(LgripInfo.currentPosition.head - 1)
-        log.info(s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}")
+        if (LgripInfo.currentPosition.head % 10 == 0) log.info(s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}")
         Thread.sleep(delay)
       }
     }
     else if (LgripInfo.currentPosition.head < targetPosition.head) {
       while (LgripInfo.currentPosition.head != targetPosition.head) {
         LgripInfo.currentPosition = LgripInfo.currentPositionKey.set(LgripInfo.currentPosition.head + 1)
-        log.info(s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}")
+        if (LgripInfo.currentPosition.head % 10 == 0) log.info(s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}")
         Thread.sleep(delay)
       }
     }
