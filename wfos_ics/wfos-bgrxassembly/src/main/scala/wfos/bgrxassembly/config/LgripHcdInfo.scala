@@ -4,7 +4,7 @@ import csw.params.core.generics.{Key, KeyType, Parameter}
 import csw.params.core.models.{ObsId}
 
 object LgripInfo {
-  // rgripHcd configurations
+  // lgripHcd configurations
   val exchangePositionKey: Key[Int]    = KeyType.IntKey.make("exchangePosition")
   val exchangePosition: Parameter[Int] = exchangePositionKey.set(100)
 
@@ -17,6 +17,10 @@ object LgripInfo {
   val targetPositionKey: Key[Int] = KeyType.IntKey.make("targetPosition")
   // val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")
   // val cwKey: Key[Int]             = KeyType.IntKey.make("cw")
+
+  // event parameters
+  val stageKey: Key[String]  = KeyType.StringKey.make("stage")
+  val statusKey: Key[String] = KeyType.StringKey.make("status")
 
   // ranges of targetPosition
   val minTargetPositionKey: Key[Int]    = KeyType.IntKey.make("minTargetPosition")

@@ -9,12 +9,12 @@ import csw.params.commands.CommandResponse._
 import csw.params.core.models.{Id}
 import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
 import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
-import csw.params.core.generics.{Parameter}
+import csw.params.core.generics.{Parameter, Key, KeyType}
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
 import wfos.bgrxassembly.config.LgripInfo
-import wfos.bgrxassembly.components.{RgripHcd, LgripHcd}
+import csw.params.events.{SystemEvent, EventName}
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -30,8 +30,9 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
   private val prefix                        = cswCtx.componentInfo.prefix
+  private val publisher                     = eventService.defaultPublisher
 
-  val rgripHcd = new RgripHcd()
+  // val rgripHcd = new RgripHcd()
 
   // Called when the component is created
   override def initialize(): Unit = {
@@ -69,9 +70,17 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
       case setup: Setup => {
         val targetPosition = setup(LgripInfo.targetPositionKey)
         if (targetPosition.head != LgripInfo.currentPosition.head) {
+          log.info("LgripHcd : Validation Successful")
           Accepted(runId)
         }
-        else Invalid(runId, ParameterValueOutOfRangeIssue("LgripHcd : Gripper is already at target angle"))
+        else {
+          log.error("LgripHcd : Gripper is already at target angle")
+          val stage  = LgripInfo.stageKey.set("Validation")
+          val status = LgripInfo.statusKey.set("Failure")
+          val event  = SystemEvent(componentInfo.prefix, EventName("LgripHcd_status")).madd(stage, status)
+          publisher.publish(event)
+          Invalid(runId, ParameterValueOutOfRangeIssue("LgripHcd : Gripper is already at target angle"))
+        }
       }
       case _: Observe => Invalid(runId, UnsupportedCommandIssue("LgripHcd accepts only setup commands"))
     }
@@ -106,6 +115,10 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
         Thread.sleep(delay)
       }
     }
+    val stage  = LgripInfo.stageKey.set("Execution")
+    val status = LgripInfo.statusKey.set("Completed")
+    val event  = SystemEvent(componentInfo.prefix, EventName("LgripHcd_status")).madd(stage, status)
+    publisher.publish(event)
     Completed(runId)
   }
 
