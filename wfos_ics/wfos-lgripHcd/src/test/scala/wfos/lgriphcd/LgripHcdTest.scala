@@ -3,14 +3,14 @@ package wfos.lgripHcd
 import csw.location.api.models.Connection.AkkaConnection
 import csw.location.api.models.{ComponentId, ComponentType}
 import csw.prefix.models.Prefix
-import csw.testkit.scaladsl.CSWService.{AlarmServer, EventServer}
+import csw.testkit.scaladsl.CSWService.{LocationServer, EventServer}
 import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class LgripHcdTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyFunSuiteLike {
+class LgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer) with AnyFunSuiteLike {
 
   import frameworkTestKit._
 
