@@ -8,14 +8,14 @@ import csw.location.api.models.{ComponentId, ComponentType}
 
 import csw.params.commands.Setup
 //import csw.prefix.models.Subsystem.WFOS
-import csw.testkit.scaladsl.CSWService.{AlarmServer, EventServer}
+import csw.testkit.scaladsl.CSWService.{LocationServer, EventServer}
 import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class BgrxassemblyTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyFunSuiteLike {
+class BgrxassemblyTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer) with AnyFunSuiteLike {
 
   import frameworkTestKit._
 
@@ -26,23 +26,9 @@ class BgrxassemblyTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServe
   }
 
   test("Assembly should be locatable using Location Service") {
-    val connection = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly"), ComponentType.Assembly))
-    Await.result(locationService.resolve(connection, 10.seconds), 10.seconds) match {
-      case None =>
-        println("Assembly connection not found")
-      case Some(loc) =>
-        val assembly = CommandServiceFactory.make(loc)
-        println("Connection found")
-      //        assembly.submitAndWait(makeSetup()).onComplete
-//      case Success(response) =>
-//        println(s"single submit test passed")
-//      case Failure(reason) =>
-//        println(s"Single submit test failed")
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly"), ComponentType.Assembly))
+    val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
-    }
-//      val commandService = CommandServiceFactory.make(akkaLocation)
-//    val setup = Setup(sequencer)
-//    val validate =
-//      commandService.validate(setup).futurevalue
+    akkaLocation.connection shouldBe connection
   }
 }

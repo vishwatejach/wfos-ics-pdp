@@ -7,7 +7,7 @@ import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.params.commands.CommandResponse._
 import csw.params.commands.{ControlCommand, CommandName, Setup, Observe}
-import csw.params.commands.CommandIssue.{UnsupportedCommandIssue, MissingKeyIssue}
+import csw.params.commands.CommandIssue.{UnsupportedCommandIssue}
 import csw.time.core.models.UTCTime
 import csw.params.core.models.{Id, ObsId}
 
@@ -16,13 +16,15 @@ import csw.location.api.models.Connection.AkkaConnection
 import csw.command.api.scaladsl.CommandService
 import csw.command.client.CommandServiceFactory
 import csw.prefix.models.{Prefix, Subsystem}
-import csw.params.core.generics.{Key, KeyType, Parameter}
+import csw.params.core.generics.Parameter
+// import csw.params.core.generics.{Key,KeyType, Parameter}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Success, Failure}
 
 import wfos.bgrxassembly.config.{RgripInfo, LgripInfo}
 import wfos.bgrxassembly.components.{RgripHcd, LgripHcd}
+import csw.params.events.{EventKey, EventName}
 
 import akka.util.Timeout
 import scala.concurrent.duration._
@@ -54,7 +56,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   private var lgripHcdCS: Option[CommandService] = None
 
   private val rgripHcd: RgripHcd = new RgripHcd()
-  private val lgripHcd: LgripHcd = new LgripHcd()
+  // private val lgripHcd: LgripHcd = new LgripHcd()
 
   implicit val timeout: Timeout = Timeout(5.seconds)
 
@@ -100,18 +102,17 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
-    val sc1: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
+    val setup1: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
 
-    val validateResponse = validateCommand(runId, sc1)
+    val validateResponse = validateCommand(runId, setup1)
     validateResponse match {
       case Accepted(runId) => {
-        val submitResponse = onSubmit(runId, sc1)
+        val submitResponse = onSubmit(runId, setup1)
         log.info(s"HELLO $submitResponse")
-        Completed(runId)
+        Started(runId)
       }
       case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
     }
-    Completed(runId)
   }
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = {
@@ -155,18 +156,108 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
     log.info(s"Bgrx Assembly : handling command: $runId")
     controlCommand match {
-      case setup: Setup => onSetup(runId, setup)
-      case _: Observe   => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
+      // case setup: Setup => onSetup(runId, setup)
+      case setup: Setup => {
+        val res        = moveRgripHcd(runId, setup)
+        val subscriber = eventService.defaultSubscriber
+
+        subscriber.subscribeCallback(
+          Set(EventKey(Prefix(Subsystem.WFOS, "lgriphcd"), EventName("LgripHcd_status"))),
+          event => {
+            val params: Seq[Parameter[String]] = event.paramSet.toSeq.collect { case param: Parameter[String] =>
+              param
+            }
+            val stage: String  = params(0).head
+            val status: String = params(1).head
+
+            log.info(s"$stage,$status")
+            stage match {
+              case "Execution" => {
+                status match {
+                  case "Completed" => {
+                    log.info(s"Bgrx Assembly : Command $runId is executed successfully")
+                    // Completed(runId)
+                  }
+                  case "Failure" => {
+                    log.info(s"Bgrx Assembly : Command $runId execution failure")
+                    // Invalid(runId, UnsupportedCommandIssue("Failed"))
+                  }
+                }
+              }
+              case "Validation" => {
+                status match {
+                  case "Failure" => {
+                    log.info(s"Bgrx Assembly: Command $runId validation failure")
+                    log.info(s"Bgrx Assembly: Stopping execution of command $runId")
+                    // Invalid(runId, UnsupportedCommandIssue("Validation failure"))
+                  }
+                  case _ => log.info(s"Bgrx Assembly: Command $runId execution completed")
+                }
+              }
+            }
+          }
+        )
+        Started(runId) // update the started response with completed response
+      }
+      case _: Observe => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
     }
   }
 
-  def onSetup(runId: Id, setup: Setup): SubmitResponse = {
-    val targetPosition = LgripInfo.targetPositionKey.set(100)
-    val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
+  // private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
+  //   val targetPosition = LgripInfo.targetPositionKey.set(100)
+  //   val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
+  //   rgripHcdCS match {
+  //     case Some(cs1) => {
+  //       val response1: Future[SubmitResponse] = cs1.submit(setup)
+  //       response1.onComplete {
+  //         case Success(result) => {
+  //           result match {
+  //             case Completed(_, _) => {
+  //               // Perform actions for a completed command
+  //               // You can log, update state, or send other messages as needed
+  //               log.info(s"Bgrx Assembly: Command $runId is executed successfully")
+  //               log.info(s"Bgrx Assembly: RgipHcd has moved to exchange position")
+  //               log.info(s"Bgrx Assembly: MOving Lgriphcd to exchange position")
+  //               lgripHcdCS match {
+  //                 case Some(cs2) => {
+  //                   val response2: Future[SubmitResponse] = cs2.submit(command)
+  //                   response2.onComplete {
+  //                     case Success(result2) => {
+  //                       result2 match {
+  //                         case Completed(_, _) => {
+  //                           log.info(s"Bgrx Assembly: Command $runId is executed successfully")
+  //                           log.info(s"Bgrx Assembly: Lgriphcd has moved to exchange position")
+  //                         }
+  //                         case Invalid(_, issue) => log.error(s"Bgrx Assembly: Command $runId execution failed with error: $issue")
+  //                       }
+  //                     }
+  //                     case Failure(ex2) => Invalid(runId, UnsupportedCommandIssue(" "))
+  //                   }
+  //                 }
+  //                 case None => log.info(s"Bgrx Assembly: Lgrip Hcd not available")
+  //               }
+  //             }
+  //             case Invalid(_, issue) => {
+  //               // Handle the invalid command issue
+  //               // You can log, handle errors, or take other actions
+  //               log.error(s"Bgrx Assembly: Command $runId execution failed with error: $issue")
+  //             }
+  //             case _ => Invalid(runId, UnsupportedCommandIssue(" "))
+  //           }
+  //         }
+  //         case Failure(ex) => Invalid(runId, UnsupportedCommandIssue(" "))
+  //       }
+  //       Started(runId)
+  //     }
+  //     case None => Invalid(runId, UnsupportedCommandIssue("Hcd is not available"))
+  //   }
+  // }
+
+  private def moveRgripHcd(runId: Id, setup: Setup): Unit = {
     rgripHcdCS match {
-      case Some(cs1) => {
-        var response1: Future[SubmitResponse] = cs1.submit(setup)
-        response1.onComplete {
+      case Some(cs) => {
+        val response: Future[SubmitResponse] = cs.submit(setup)
+        response.onComplete {
           case Success(result) => {
             result match {
               case Completed(_, _) => {
@@ -174,54 +265,34 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
                 // You can log, update state, or send other messages as needed
                 log.info(s"Bgrx Assembly: Command $runId is executed successfully")
                 log.info(s"Bgrx Assembly: RgipHcd has moved to exchange position")
-                log.info(s"Bgrx Assembly: MOving Lgriphcd to exchange position")
-                lgripHcdCS match {
-                  case Some(cs2) => {
-                    var response2: Future[SubmitResponse] = cs2.submit(command)
-                    response2.onComplete {
-                      case Success(result2) => {
-                        result2 match {
-                          case Completed(_, _) => {
-                            log.info(s"Bgrx Assembly: Command $runId is executed successfully")
-                            log.info(s"Bgrx Assembly: Lgriphcd has moved to exchange position")
-                          }
-                          case Invalid(_, issue) => log.error(s"Bgrx Assembly: Command $runId execution failed with error: $issue")
-                        }
-                      }
-                      case Failure(ex2) => Invalid(runId, UnsupportedCommandIssue(" "))
-                    }
-                  }
-                  case None => log.info(s"Bgrx Assembly: Lgrip Hcd not available")
-                }
+                moveLgripHcd(runId)
               }
+
               case Invalid(_, issue) => {
-                // Handle the invalid command issue
-                // You can log, handle errors, or take other actions
-                log.error(s"Bgrx Assembly: Command $runId execution failed with error: $issue")
+                log.info(s"Bgrx Assembly: Command $runId execution failure with error - $issue")
+                Invalid(runId, issue)
               }
-              case _ => Invalid(runId, UnsupportedCommandIssue(" "))
+
+              case _ => Invalid(runId, _)
             }
           }
-          case Failure(ex) => Invalid(runId, UnsupportedCommandIssue(" "))
+          case Failure(error) => {
+            log.info(s"$error")
+            Invalid(runId, UnsupportedCommandIssue(""))
+          }
         }
-        Started(runId)
       }
-      case None => Invalid(runId, UnsupportedCommandIssue(" "))
+      case None => Invalid(runId, UnsupportedCommandIssue("RgripHcd is not available"))
     }
   }
 
-  def moveHcd(runId: Id, setup: Setup): Unit = {
-    rgripHcdCS match {
-      case Some(cs) => {
-        cs.submit(setup).foreach {
-          case started: Started => cs.queryFinal(started.runId).foreach(sr => commandResponseManager.updateCommand(sr.withRunId(runId)))
-          case other            => commandResponseManager.updateCommand(other.withRunId(runId))
-        }
-      }
-      case None =>
-        commandResponseManager.updateCommand(
-          Error(runId, s"A needed HCD is not available: ${hcdConnection.componentId} for")
-        )
+  private def moveLgripHcd(runId: Id): Unit = {
+    val targetPosition = LgripInfo.targetPositionKey.set(100)
+    val setup2: Setup  = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
+
+    lgripHcdCS match {
+      case Some(cs) => cs.submit(setup2)
+      case None     => Invalid(runId, UnsupportedCommandIssue("LgripHcd is not avilable"))
     }
   }
 

@@ -3,14 +3,17 @@ package wfos.rgripHcd
 import csw.location.api.models.Connection.AkkaConnection
 import csw.location.api.models.{ComponentId, ComponentType}
 import csw.prefix.models.Prefix
-import csw.testkit.scaladsl.CSWService.{AlarmServer, EventServer}
+import csw.testkit.scaladsl.CSWService.{LocationServer, EventServer}
 import csw.testkit.scaladsl.ScalaTestFrameworkTestKit
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class RgripHcdTest extends ScalaTestFrameworkTestKit(AlarmServer, EventServer) with AnyFunSuiteLike {
+// Since our current code uses only location service and event service we will start only those services.
+// This is done By passing in the needed services in the constructor,
+// those services are started in the superclass’s(i.e., ScalaTestFrameworkTestKit) beforeAll method
+class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer) with AnyFunSuiteLike {
 
   import frameworkTestKit._
 

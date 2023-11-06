@@ -9,8 +9,8 @@ import csw.params.commands.CommandResponse._
 import csw.params.core.models.{Id}
 import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
 import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
-// import csw.params.core.generics.{Parameter}
-import csw.params.core.generics.{Key, Parameter}
+
+import csw.params.core.generics.{Parameter}
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
@@ -61,7 +61,7 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
       }
     }
     else {
-      log.info("RgripHcd : Gripper is at exchange position")
+      log.info("RgripHcd : Gripper is already at home position")
     }
   }
 
