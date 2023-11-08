@@ -75,14 +75,17 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
         if (targetAngle.head != RgripInfo.currentAngle.head) {
           Accepted(runId)
         }
-        else Invalid(runId, ParameterValueOutOfRangeIssue("RgripHcd: Gripper is already at target angle"))
+        else {
+          log.error(s"RgripHcd: Gripper is already at target position")
+          Invalid(runId, ParameterValueOutOfRangeIssue("RgripHcd: Gripper is already at target angle"))
+        }
       }
       case _: Observe => Invalid(runId, UnsupportedCommandIssue("RgripHcd accepts only setup commands"))
     }
   }
 
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
-    log.info(s"RgripHcd: handling command: ${controlCommand.commandName} $controlCommand")
+    log.info(s"RgripHcd: handling command: runid - $runId")
     controlCommand match {
       case setup: Setup => onSetup(runId, setup)
       case _            => Invalid(runId, UnsupportedCommandIssue("RgripHcd: Inavlid Command received"))
@@ -91,12 +94,12 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
 
   private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
 
-    log.info(s"RgripHcd: Executing the received command: $setup")
+    log.info(s"RgripHcd: Executing the received command: runid - $runId")
     val targetAngle: Parameter[Int] = setup(RgripInfo.targetAngleKey)
     val delay: Int                  = 500
     log.info(s"RgripHcd: Gripper is at ${RgripInfo.currentAngle.head} degrees")
 
-    Started(runId)
+    // Started(runId)
 
     if (RgripInfo.currentAngle.head > targetAngle.head) {
       while (RgripInfo.currentAngle.head != targetAngle.head) {

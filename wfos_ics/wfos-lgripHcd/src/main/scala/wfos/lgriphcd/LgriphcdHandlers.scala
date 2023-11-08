@@ -37,7 +37,7 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   // Called when the component is created
   override def initialize(): Unit = {
     log.info(s"Initializing $prefix")
-    log.info(s"Checking if $prefix is at home position")
+    log.info(s"LgripHcd : Checking if $prefix is at home position")
 
     log.info(s"${LgripInfo.homePosition.head}, ${LgripInfo.currentPosition.head}")
     if (LgripInfo.currentPosition.head != LgripInfo.homePosition.head) {

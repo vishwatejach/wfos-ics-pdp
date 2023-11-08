@@ -7,7 +7,7 @@ import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.params.commands.CommandResponse._
 import csw.params.commands.{ControlCommand, CommandName, Setup, Observe}
-import csw.params.commands.CommandIssue.{UnsupportedCommandIssue}
+import csw.params.commands.CommandIssue.{UnsupportedCommandIssue, RequiredHCDUnavailableIssue}
 import csw.time.core.models.UTCTime
 import csw.params.core.models.{Id, ObsId}
 
@@ -28,9 +28,7 @@ import csw.params.events.{EventKey, EventName}
 
 import akka.util.Timeout
 import scala.concurrent.duration._
-// import scala.async.Async.{async, await}
-
-// import scala.concurrent.duration._
+import scala.concurrent.Await
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -46,11 +44,8 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
 
-  // #resolve-hcd-and-create-commandservice
   private implicit val system: ActorSystem[Nothing] = ctx.system
-  // #resolve-hcd-and-create-commandservice
 
-  private val hcdConnection = AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "rgripHcd"), ComponentType.HCD))
   // private var hcdLocation: AkkaLocation     = _
   private var rgripHcdCS: Option[CommandService] = None
   private var lgripHcdCS: Option[CommandService] = None
@@ -60,18 +55,15 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   implicit val timeout: Timeout = Timeout(5.seconds)
 
-  // keys of Hcd names
-  // private val hcdNameKey: Key[String] = KeyType.StringKey.make("hcdName")
-
   // Prefix of assembly
-  val sourcePrefix: Prefix = Prefix("wfos.bgrxassembly")
-  private val obsId: ObsId = ObsId("2023A-001-123")
+  private val sourcePrefix: Prefix = Prefix("wfos.bgrxassembly")
+  private val obsId: ObsId         = ObsId("2023A-001-123")
 
   override def initialize(): Unit = {
     log.info("Initializing BgrxAssembly")
   }
 
-  override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {
+  override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = { // no need to create CS here
     log.info("Bgrx Assembly : Locations of components in the assembly are updated")
     log.info(s"Bgrx Assembly : onLocationTrackingEvent is called")
     trackingEvent match {
@@ -107,9 +99,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     val validateResponse = validateCommand(runId, setup1)
     validateResponse match {
       case Accepted(runId) => {
-        val submitResponse = onSubmit(runId, setup1)
-        log.info(s"HELLO $submitResponse")
-        Started(runId)
+        onSubmit(runId, setup1)
       }
       case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
     }
@@ -157,142 +147,78 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     log.info(s"Bgrx Assembly : handling command: $runId")
     controlCommand match {
       // case setup: Setup => onSetup(runId, setup)
-      case setup: Setup => {
-        val res        = moveRgripHcd(runId, setup)
-        val subscriber = eventService.defaultSubscriber
-
-        subscriber.subscribeCallback(
-          Set(EventKey(Prefix(Subsystem.WFOS, "lgriphcd"), EventName("LgripHcd_status"))),
-          event => {
-            val params: Seq[Parameter[String]] = event.paramSet.toSeq.collect { case param: Parameter[String] =>
-              param
-            }
-            val stage: String  = params(0).head
-            val status: String = params(1).head
-
-            log.info(s"$stage,$status")
-            stage match {
-              case "Execution" => {
-                status match {
-                  case "Completed" => {
-                    log.info(s"Bgrx Assembly : Command $runId is executed successfully")
-                    // Completed(runId)
-                  }
-                  case "Failure" => {
-                    log.info(s"Bgrx Assembly : Command $runId execution failure")
-                    // Invalid(runId, UnsupportedCommandIssue("Failed"))
-                  }
-                }
-              }
-              case "Validation" => {
-                status match {
-                  case "Failure" => {
-                    log.info(s"Bgrx Assembly: Command $runId validation failure")
-                    log.info(s"Bgrx Assembly: Stopping execution of command $runId")
-                    // Invalid(runId, UnsupportedCommandIssue("Validation failure"))
-                  }
-                  case _ => log.info(s"Bgrx Assembly: Command $runId execution completed")
-                }
-              }
-            }
-          }
-        )
-        Started(runId) // update the started response with completed response
-      }
-      case _: Observe => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
+      case setup: Setup => onSetup(runId, setup)
+      case _: Observe   => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
     }
   }
 
-  // private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
-  //   val targetPosition = LgripInfo.targetPositionKey.set(100)
-  //   val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
-  //   rgripHcdCS match {
-  //     case Some(cs1) => {
-  //       val response1: Future[SubmitResponse] = cs1.submit(setup)
-  //       response1.onComplete {
-  //         case Success(result) => {
-  //           result match {
-  //             case Completed(_, _) => {
-  //               // Perform actions for a completed command
-  //               // You can log, update state, or send other messages as needed
-  //               log.info(s"Bgrx Assembly: Command $runId is executed successfully")
-  //               log.info(s"Bgrx Assembly: RgipHcd has moved to exchange position")
-  //               log.info(s"Bgrx Assembly: MOving Lgriphcd to exchange position")
-  //               lgripHcdCS match {
-  //                 case Some(cs2) => {
-  //                   val response2: Future[SubmitResponse] = cs2.submit(command)
-  //                   response2.onComplete {
-  //                     case Success(result2) => {
-  //                       result2 match {
-  //                         case Completed(_, _) => {
-  //                           log.info(s"Bgrx Assembly: Command $runId is executed successfully")
-  //                           log.info(s"Bgrx Assembly: Lgriphcd has moved to exchange position")
-  //                         }
-  //                         case Invalid(_, issue) => log.error(s"Bgrx Assembly: Command $runId execution failed with error: $issue")
-  //                       }
-  //                     }
-  //                     case Failure(ex2) => Invalid(runId, UnsupportedCommandIssue(" "))
-  //                   }
-  //                 }
-  //                 case None => log.info(s"Bgrx Assembly: Lgrip Hcd not available")
-  //               }
-  //             }
-  //             case Invalid(_, issue) => {
-  //               // Handle the invalid command issue
-  //               // You can log, handle errors, or take other actions
-  //               log.error(s"Bgrx Assembly: Command $runId execution failed with error: $issue")
-  //             }
-  //             case _ => Invalid(runId, UnsupportedCommandIssue(" "))
-  //           }
-  //         }
-  //         case Failure(ex) => Invalid(runId, UnsupportedCommandIssue(" "))
-  //       }
-  //       Started(runId)
-  //     }
-  //     case None => Invalid(runId, UnsupportedCommandIssue("Hcd is not available"))
-  //   }
-  // }
+  private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
+    moveRgripHcd(runId, setup)
+    Started(runId)
+  }
 
   private def moveRgripHcd(runId: Id, setup: Setup): Unit = {
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
+
+    rgripHcdCS = Some(CommandServiceFactory.make(akkaLocation))
+
     rgripHcdCS match {
       case Some(cs) => {
         val response: Future[SubmitResponse] = cs.submit(setup)
-        response.onComplete {
-          case Success(result) => {
-            result match {
-              case Completed(_, _) => {
-                // Perform actions for a completed command
-                // You can log, update state, or send other messages as needed
-                log.info(s"Bgrx Assembly: Command $runId is executed successfully")
-                log.info(s"Bgrx Assembly: RgipHcd has moved to exchange position")
-                moveLgripHcd(runId)
-              }
-
-              case Invalid(_, issue) => {
-                log.info(s"Bgrx Assembly: Command $runId execution failure with error - $issue")
-                Invalid(runId, issue)
-              }
-
-              case _ => Invalid(runId, _)
-            }
+        response.foreach {
+          case completed: Completed => {
+            // log.info(s"Bgrx Assembly: Command with runId - $runId is executed successfully")
+            log.info(s"Bgrx Assembly: RgripHcd has moved to exchange position successfully")
+            moveLgripHcd(runId)
+            // commandResponseManager.updateCommand(completed.withRunId(runId))
           }
-          case Failure(error) => {
-            log.info(s"$error")
-            Invalid(runId, UnsupportedCommandIssue(""))
+          case error: Invalid => {
+            log.error(s"Bgrx Assembly: Execution of command with runId- $runId has failed")
+            log.error(s"Bgrx Assembly: ${error.issue}")
+            commandResponseManager.updateCommand(error.withRunId(runId))
           }
+
+          case other => commandResponseManager.updateCommand(other.withRunId(runId))
         }
       }
-      case None => Invalid(runId, UnsupportedCommandIssue("RgripHcd is not available"))
+      case None => {
+        log.error("Bgrx Assembly : Rgrip Hcd is not available. Failed to create an instance of command service to Rgrip Hcd")
+        commandResponseManager.updateCommand(Invalid(runId, RequiredHCDUnavailableIssue("Rgrip Hcd is not available")))
+      }
     }
   }
 
   private def moveLgripHcd(runId: Id): Unit = {
     val targetPosition = LgripInfo.targetPositionKey.set(100)
-    val setup2: Setup  = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
+    val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
+
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.lgriphcd"), ComponentType.HCD))
+    val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
+
+    lgripHcdCS = Some(CommandServiceFactory.make(akkaLocation))
 
     lgripHcdCS match {
-      case Some(cs) => cs.submit(setup2)
-      case None     => Invalid(runId, UnsupportedCommandIssue("LgripHcd is not avilable"))
+      case Some(cs) => {
+        val response: Future[SubmitResponse] = cs.submit(command)
+        response.foreach {
+          case completed: Completed => {
+            log.info(s"Bgrx Assembly: LgripHcd has moved to exchange position successfully")
+            log.info(s"Bgrx Assembly: Execution of command with runId - $runId is completed successfully")
+            commandResponseManager.updateCommand(completed.withRunId(runId))
+          }
+
+          case error: Invalid => {
+            log.error(s"Bgrx Assembly: Execution of command with runId- $runId has failed")
+            log.error(s"Bgrx Assembly: ${error.issue}")
+            commandResponseManager.updateCommand(error.withRunId(runId))
+          }
+        }
+      }
+      case None => {
+        log.error("Bgrx Assembly : Rgrip Hcd is not available. Failed to create an instance of command service to Rgrip Hcd")
+        commandResponseManager.updateCommand(Invalid(runId, RequiredHCDUnavailableIssue("Rgrip Hcd is not available")))
+      }
     }
   }
 
