@@ -16,7 +16,7 @@ import csw.params.commands.CommandResponse._
 import csw.params.commands.CommandIssue._
 import csw.command.client.CommandServiceFactory
 import csw.logging.client.scaladsl.LoggingSystemFactory
-import wfos.bgrxassembly.config.RgripInfo
+import wfos.rgriphcd.RgripInfo
 
 // Since our current code uses only location service and event service we will start only those services.
 // This is done By passing in the needed services in the constructor,

@@ -14,7 +14,7 @@ import csw.params.core.generics.Parameter
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
-import wfos.bgrxassembly.config.LgripInfo
+import wfos.lgriphcd.LgripInfo
 import csw.params.events.{SystemEvent, EventName}
 
 /**

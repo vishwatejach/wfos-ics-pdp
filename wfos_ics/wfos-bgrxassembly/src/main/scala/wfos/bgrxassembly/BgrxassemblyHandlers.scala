@@ -21,7 +21,8 @@ import csw.params.core.generics.Parameter
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 // import scala.util.{Success, Failure}
-import wfos.bgrxassembly.config.{RgripInfo, LgripInfo}
+import wfos.lgriphcd.LgripInfo
+import wfos.rgriphcd.RgripInfo
 import wfos.bgrxassembly.components.{RgripHcd, LgripHcd}
 import csw.params.events.{EventKey, EventName}
 
@@ -90,7 +91,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   private def sendCommand(runId: Id): SubmitResponse = {
     val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(30)
-    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid6")
+    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
     val setup1: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)

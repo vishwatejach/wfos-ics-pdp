@@ -17,7 +17,7 @@ import csw.command.client.CommandServiceFactory
 import csw.logging.client.scaladsl.LoggingSystemFactory
 import csw.params.events.{EventKey, EventName, SystemEvent}
 import csw.params.core.generics.{Parameter, Key, KeyType}
-import wfos.bgrxassembly.config.LgripInfo
+import wfos.lgriphcd.LgripInfo
 
 class LgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer) with AnyFunSuiteLike {
 

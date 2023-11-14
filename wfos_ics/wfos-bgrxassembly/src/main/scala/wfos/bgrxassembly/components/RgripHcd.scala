@@ -3,7 +3,7 @@ package wfos.bgrxassembly.components
 import csw.params.commands.{CommandIssue, Setup}
 import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, MissingKeyIssue}
 import csw.params.core.generics.{Parameter}
-import wfos.bgrxassembly.config.RgripInfo
+import wfos.rgriphcd.RgripInfo
 
 class RgripHcd extends Hcd {
   override def validateParameters(setup: Setup): Either[CommandIssue, Parameter[Int]] = {

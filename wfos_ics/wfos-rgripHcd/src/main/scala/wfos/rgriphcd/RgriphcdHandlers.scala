@@ -14,7 +14,7 @@ import csw.params.core.generics.{Parameter}
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
-import wfos.bgrxassembly.config.RgripInfo
+import wfos.rgriphcd.RgripInfo
 
 /**
  * Domain specific logic should be written in below handlers.

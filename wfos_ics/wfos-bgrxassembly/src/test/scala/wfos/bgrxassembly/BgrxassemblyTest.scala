@@ -20,7 +20,7 @@ import csw.params.commands.{Setup, Observe, CommandName}
 import csw.params.commands.CommandResponse._
 import csw.params.commands.CommandIssue._
 import csw.logging.client.scaladsl.LoggingSystemFactory
-import wfos.bgrxassembly.config.RgripInfo
+import wfos.rgriphcd.RgripInfo
 
 class BgrxassemblyTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer) with AnyFunSuiteLike {
 

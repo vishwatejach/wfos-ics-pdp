@@ -1,4 +1,4 @@
-package wfos.bgrxassembly.config
+package wfos.lgriphcd
 
 import csw.params.core.generics.{Key, KeyType, Parameter}
 import csw.params.core.models.{ObsId}

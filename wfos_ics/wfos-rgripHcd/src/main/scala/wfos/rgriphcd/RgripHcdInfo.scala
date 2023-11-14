@@ -1,4 +1,4 @@
-package wfos.bgrxassembly.config
+package wfos.rgriphcd
 
 // import csw.params.commands.CommandName
 import csw.params.core.generics.{Key, KeyType, Parameter}
