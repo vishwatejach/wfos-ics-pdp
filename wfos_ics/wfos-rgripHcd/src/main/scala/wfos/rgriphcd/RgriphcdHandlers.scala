@@ -7,7 +7,7 @@ import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
 import csw.params.core.models.{Id}
-import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
+import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue, WrongCommandTypeIssue}
 import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
 
 import csw.params.core.generics.{Parameter}
@@ -80,7 +80,7 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
           Invalid(runId, ParameterValueOutOfRangeIssue("RgripHcd: Gripper is already at target angle"))
         }
       }
-      case _: Observe => Invalid(runId, UnsupportedCommandIssue("RgripHcd accepts only setup commands"))
+      case _: Observe => Invalid(runId, WrongCommandTypeIssue("RgripHcd accepts only setup commands"))
     }
   }
 

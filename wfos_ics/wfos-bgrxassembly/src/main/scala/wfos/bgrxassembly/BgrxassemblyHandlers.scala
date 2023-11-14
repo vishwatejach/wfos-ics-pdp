@@ -7,7 +7,7 @@ import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.params.commands.CommandResponse._
 import csw.params.commands.{ControlCommand, CommandName, Setup, Observe}
-import csw.params.commands.CommandIssue.{UnsupportedCommandIssue, RequiredHCDUnavailableIssue}
+import csw.params.commands.CommandIssue.{UnsupportedCommandIssue, RequiredHCDUnavailableIssue, WrongCommandTypeIssue}
 import csw.time.core.models.UTCTime
 import csw.params.core.models.{Id, ObsId}
 
@@ -20,8 +20,7 @@ import csw.params.core.generics.Parameter
 // import csw.params.core.generics.{Key,KeyType, Parameter}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import scala.util.{Success, Failure}
-
+// import scala.util.{Success, Failure}
 import wfos.bgrxassembly.config.{RgripInfo, LgripInfo}
 import wfos.bgrxassembly.components.{RgripHcd, LgripHcd}
 import csw.params.events.{EventKey, EventName}
@@ -91,16 +90,14 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   private def sendCommand(runId: Id): SubmitResponse = {
     val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(30)
-    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
+    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid6")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
     val setup1: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
 
     val validateResponse = validateCommand(runId, setup1)
     validateResponse match {
-      case Accepted(runId) => {
-        onSubmit(runId, setup1)
-      }
+      case Accepted(runId)       => onSubmit(runId, setup1)
       case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
     }
   }
@@ -127,19 +124,20 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
                 Accepted(runId)
               }
               case Left(error) => {
-                log.error(s"RgrpHcd: Validation is Failure. ${error}")
-                Invalid(runId, UnsupportedCommandIssue("sda"))
+                log.error(s"Bgrx Assembly: Parameter validation Failure. ${error}")
+                // Invalid(runId, WrongCommandTypeIssue("Wrong parameters in the command"))
+                Invalid(runId, error)
               }
             }
           }
           case _ => {
-            log.error(s"Bgrx Assembly : Validation is Failure. $sourcePrefix takes only 'move' Setup as commands")
+            log.error(s"Bgrx Assembly : Command name validation Failure. $sourcePrefix takes only 'move' Setup as commands")
             Invalid(runId, UnsupportedCommandIssue(s"$sourcePrefix takes only 'move' Setup as commands"))
           }
         }
       case _: Observe =>
         log.error(s"Bgrx Assembly : Validation is Failure. $sourcePrefix prefix only accepts Setup Commands")
-        Invalid(runId, UnsupportedCommandIssue("Observe commands are not supported"))
+        Invalid(runId, WrongCommandTypeIssue("Observe commands are not supported"))
     }
   }
 
@@ -148,7 +146,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     controlCommand match {
       // case setup: Setup => onSetup(runId, setup)
       case setup: Setup => onSetup(runId, setup)
-      case _: Observe   => Invalid(runId, UnsupportedCommandIssue("This assembly can't handle observe commands"))
+      case _: Observe   => Invalid(runId, WrongCommandTypeIssue("This assembly can't handle observe commands"))
     }
   }
 
@@ -213,6 +211,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
             log.error(s"Bgrx Assembly: ${error.issue}")
             commandResponseManager.updateCommand(error.withRunId(runId))
           }
+          case other => commandResponseManager.updateCommand(other.withRunId(runId))
         }
       }
       case None => {

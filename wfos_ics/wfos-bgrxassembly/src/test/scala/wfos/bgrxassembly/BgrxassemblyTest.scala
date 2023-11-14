@@ -19,7 +19,6 @@ import csw.params.core.generics.{Parameter}
 import csw.params.commands.{Setup, Observe, CommandName}
 import csw.params.commands.CommandResponse._
 import csw.params.commands.CommandIssue._
-import csw.command.client.CommandServiceFactory
 import csw.logging.client.scaladsl.LoggingSystemFactory
 import wfos.bgrxassembly.config.RgripInfo
 
@@ -58,7 +57,6 @@ class BgrxassemblyTest extends ScalaTestFrameworkTestKit(LocationServer, EventSe
     val bgrxCS   = CommandServiceFactory.make(akkaLocation)
     val response = Await.result(bgrxCS.submit(command), 5000.millis)
 
-    response shouldBe a[Invalid]
+    response.asInstanceOf[Invalid].issue shouldBe a[WrongParameterTypeIssue]
   }
-
 }
