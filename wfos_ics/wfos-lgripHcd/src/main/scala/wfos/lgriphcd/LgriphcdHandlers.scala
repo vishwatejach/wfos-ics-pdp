@@ -7,13 +7,14 @@ import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
 import csw.params.core.models.{Id}
-import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue}
+import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, WrongCommandTypeIssue, UnsupportedCommandIssue}
 import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
-import csw.params.core.generics.{Parameter, Key, KeyType}
+// import csw.params.core.generics.{Parameter, Key, KeyType}
+import csw.params.core.generics.Parameter
 import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
-import wfos.bgrxassembly.config.LgripInfo
+import wfos.lgriphcd.LgripInfo
 import csw.params.events.{SystemEvent, EventName}
 
 /**
@@ -37,7 +38,7 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   // Called when the component is created
   override def initialize(): Unit = {
     log.info(s"Initializing $prefix")
-    log.info(s"Checking if $prefix is at home position")
+    log.info(s"LgripHcd : Checking if $prefix is at home position")
 
     log.info(s"${LgripInfo.homePosition.head}, ${LgripInfo.currentPosition.head}")
     if (LgripInfo.currentPosition.head != LgripInfo.homePosition.head) {
@@ -75,19 +76,21 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
         }
         else {
           log.error("LgripHcd : Gripper is already at target angle")
+
           val stage  = LgripInfo.stageKey.set("Validation")
           val status = LgripInfo.statusKey.set("Failure")
           val event  = SystemEvent(componentInfo.prefix, EventName("LgripHcd_status")).madd(stage, status)
           publisher.publish(event)
+
           Invalid(runId, ParameterValueOutOfRangeIssue("LgripHcd : Gripper is already at target angle"))
         }
       }
-      case _: Observe => Invalid(runId, UnsupportedCommandIssue("LgripHcd accepts only setup commands"))
+      case _: Observe => Invalid(runId, WrongCommandTypeIssue("LgripHcd accepts only setup commands"))
     }
   }
 
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
-    log.info(s"LgripHcd : handling command: ${controlCommand.commandName} $controlCommand")
+    log.info(s"LgripHcd : Handling command with runId - $runId")
     controlCommand match {
       case setup: Setup => onSetup(runId, setup)
       case _            => Invalid(runId, UnsupportedCommandIssue("LgripHcd : Inavlid Command received"))
@@ -96,7 +99,7 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
 
   private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
 
-    log.info(s"LgripHcd : Executing the received command: $setup")
+    log.info(s"LgripHcd : Executing the received command with runId - $runId")
     val targetPosition: Parameter[Int] = setup(LgripInfo.targetPositionKey)
     val delay: Int                     = 10
     log.info(s"LgripHcd : Gripper is at ${LgripInfo.currentPosition.head}cm")
@@ -115,7 +118,7 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
         Thread.sleep(delay)
       }
     }
-    val stage  = LgripInfo.stageKey.set("Execution")
+    val stage  = LgripInfo.stageKey.set("Setup")
     val status = LgripInfo.statusKey.set("Completed")
     val event  = SystemEvent(componentInfo.prefix, EventName("LgripHcd_status")).madd(stage, status)
     publisher.publish(event)

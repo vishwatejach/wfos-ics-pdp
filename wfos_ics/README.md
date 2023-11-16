@@ -61,3 +61,23 @@ sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --loc
 ```
 sbt "wfos-wfos-icsdeploy/runMain wfos.wfosicsdeploy.WfosIcsContainerCmdApp --local ./src/main/resources/JWfosIcsContainer.conf"
 ```
+
+## Testing the HCD and Assembly
+
+To run the tests in all sub-projects use the following command:
+
+```
+sbt test
+```
+
+To run tests of a particular sub-project use the following command (replace the wfos-bgrxassembly with name of your target sub-project): 
+
+```
+sbt wfos-bgrxassembly/test
+```
+
+To list all the sub-projects in the root project use the following command:
+
+```
+sbt projects
+```
