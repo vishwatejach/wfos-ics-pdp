@@ -83,10 +83,10 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
       }
       case LocationRemoved(connection) => log.info("Location Removed")
     }
-    if (rgripHcdCS != None && lgripHcdCS != None) {
-      log.info("Bgrx Assembly : All HCDs are successfully initialized")
-      sendCommand(Id("bgrx"))
-    }
+    // if (rgripHcdCS != None && lgripHcdCS != None) {
+    //   log.info("Bgrx Assembly : All HCDs are successfully initialized")
+    //   sendCommand(Id("bgrx"))
+    // }
   }
 
   private def sendCommand(runId: Id): SubmitResponse = {
@@ -94,11 +94,11 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
-    val setup1: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
+    val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
 
-    val validateResponse = validateCommand(runId, setup1)
+    val validateResponse = validateCommand(runId, command)
     validateResponse match {
-      case Accepted(runId)       => onSubmit(runId, setup1)
+      case Accepted(runId)       => onSubmit(runId, command)
       case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
     }
   }
@@ -137,15 +137,22 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
           }
         }
       case _: Observe =>
-        log.error(s"Bgrx Assembly : Validation is Failure. $sourcePrefix prefix only accepts Setup Commands")
+        log.error(s"Bgrx Assembly : Validation is Failure. $sourcePrefix only accepts Setup Commands")
         Invalid(runId, WrongCommandTypeIssue("Observe commands are not supported"))
     }
   }
 
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
     log.info(s"Bgrx Assembly : handling command: $runId")
+
+    val subscriber = eventService.defaultSubscriber
+    subscriber.subscribeCallback(
+      Set(EventKey(Prefix("wfos.lgriphcd"), EventName("LgripHcd_status"))),
+      event => {
+        log.info(s"$event")
+      }
+    )
     controlCommand match {
-      // case setup: Setup => onSetup(runId, setup)
       case setup: Setup => onSetup(runId, setup)
       case _: Observe   => Invalid(runId, WrongCommandTypeIssue("This assembly can't handle observe commands"))
     }
