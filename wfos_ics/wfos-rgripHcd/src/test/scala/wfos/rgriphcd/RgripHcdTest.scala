@@ -52,20 +52,20 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
     response.asInstanceOf[Invalid].issue shouldBe a[WrongCommandTypeIssue]
   }
 
-  test("HCD should be able to validate a command and return Invalid type response") {
+  test("HCD should be able to validate a command and return Completed type response") {
     val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
 
-    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(35)
+    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(28)
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
     val command: Setup = Setup(Prefix("wfos.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
 
     val response = Await.result(rgripHcdCS.submit(command), 5000.millis)
-    response.asInstanceOf[Invalid].issue shouldBe a[ParameterValueOutOfRangeIssue]
+    response shouldBe a[Completed]
   }
 
   test("HCD should be able to execute a command and return Completed response") {
@@ -74,7 +74,7 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
 
-    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(30)
+    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(35)
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 

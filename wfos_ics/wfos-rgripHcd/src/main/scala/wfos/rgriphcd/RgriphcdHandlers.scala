@@ -34,35 +34,37 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   // Called when the component is created
   override def initialize(): Unit = {
     log.info(s"Initializing $prefix")
-    log.info(s"RgripHcd : Checking if $prefix is at home position")
+    // log.info(s"RgripHcd : Checking if $prefix is at home position")
 
     // val ik: Key[Int]            = KeyType.IntKey.make("IKey")
     // val ikValue: Parameter[Int] = ik.set(1)
     // log.info(s"IK value : ${ikValue.value(0)}")
 
-    log.info(s"RgripHcd : Home Position - ${RgripInfo.exchangeAngle.values.head}, Current Position - ${RgripInfo.currentAngle.values.head}")
-    if (RgripInfo.currentAngle.values.head != RgripInfo.homeAngle.values.head) {
-      log.error("RgripHcd : gripper is not at the exchange position")
+    log.info(
+      s"RgripHcd : Exchange Position - ${RgripInfo.exchangeAngle.values.head}, Current Position - ${RgripInfo.currentAngle.values.head}"
+    )
+    // if (RgripInfo.currentAngle.values.head != RgripInfo.homeAngle.values.head) {
+    //   log.error("RgripHcd : gripper is not at the exchange position")
 
-      val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(RgripInfo.homeAngle.head)
-      val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
-      val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
-      val sc1: Setup                     = Setup(prefix, CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
+    //   val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(RgripInfo.homeAngle.head)
+    //   val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
+    //   val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
+    //   val sc1: Setup                     = Setup(prefix, CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
 
-      val validateResponse = validateCommand(Id(), sc1)
-      validateResponse match {
-        case Accepted(runId) => onSubmit(runId, sc1)
-        case Invalid(runId, commandissue) => {
-          log.error("RgripHcd : Validation Failure")
-          // log.info(s"${validateResponse.commandissue}")
-          log.error(s"$commandissue")
-          Invalid(runId, commandissue)
-        }
-      }
-    }
-    else {
-      log.info("RgripHcd : Gripper is already at home position")
-    }
+    //   val validateResponse = validateCommand(Id(), sc1)
+    //   validateResponse match {
+    //     case Accepted(runId) => onSubmit(runId, sc1)
+    //     case Invalid(runId, commandissue) => {
+    //       log.error("RgripHcd : Validation Failure")
+    //       // log.info(s"${validateResponse.commandissue}")
+    //       log.info(s"$commandissue")
+    //       Invalid(runId, commandissue)
+    //     }
+    //   }
+    // }
+    // else {
+    // log.info("RgripHcd : Gripper is already at home position")
+    // }
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = {}
@@ -76,8 +78,8 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
           Accepted(runId)
         }
         else {
-          log.error(s"RgripHcd: Gripper is already at target position")
-          Invalid(runId, ParameterValueOutOfRangeIssue("RgripHcd: Gripper is already at target angle"))
+          log.info(s"RgripHcd: Gripper is already at target position")
+          Accepted(runId)
         }
       }
       case _: Observe => Invalid(runId, WrongCommandTypeIssue("RgripHcd accepts only setup commands"))
@@ -93,29 +95,33 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   }
 
   private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
-
-    log.info(s"RgripHcd: Executing the received command: runid - $runId")
     val targetAngle: Parameter[Int] = setup(RgripInfo.targetAngleKey)
-    val delay: Int                  = 500
-    log.info(s"RgripHcd: Gripper is at ${RgripInfo.currentAngle.head} degrees")
-
-    // Started(runId)
-
-    if (RgripInfo.currentAngle.head > targetAngle.head) {
-      while (RgripInfo.currentAngle.head != targetAngle.head) {
-        RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head - 1)
-        log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
-        Thread.sleep(delay)
-      }
+    if (RgripInfo.currentAngle.head == targetAngle.head) {
+      Completed(runId)
     }
-    else if (RgripInfo.currentAngle.head < targetAngle.head) {
-      while (RgripInfo.currentAngle.head != targetAngle.head) {
-        RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head + 1)
-        log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
-        Thread.sleep(delay)
+    else {
+      log.info(s"RgripHcd: Executing the received command: runid - $runId")
+      val delay: Int = 500
+      log.info(s"RgripHcd: Gripper is at ${RgripInfo.currentAngle.head} degrees")
+
+      // Started(runId)
+
+      if (RgripInfo.currentAngle.head > targetAngle.head) {
+        while (RgripInfo.currentAngle.head != targetAngle.head) {
+          RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head - 1)
+          log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
+          Thread.sleep(delay)
+        }
       }
+      else if (RgripInfo.currentAngle.head < targetAngle.head) {
+        while (RgripInfo.currentAngle.head != targetAngle.head) {
+          RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head + 1)
+          log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
+          Thread.sleep(delay)
+        }
+      }
+      Completed(runId)
     }
-    Completed(runId)
   }
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
