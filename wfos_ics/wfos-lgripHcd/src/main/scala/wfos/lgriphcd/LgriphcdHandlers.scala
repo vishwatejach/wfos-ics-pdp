@@ -40,26 +40,26 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
     log.info(s"Initializing $prefix")
     log.info(s"LgripHcd : Checking if $prefix is at home position")
 
-    log.info(s"${LgripInfo.homePosition.head}, ${LgripInfo.currentPosition.head}")
+    log.info(s"Home Position - ${LgripInfo.homePosition.head}, Current Position - ${LgripInfo.currentPosition.head}")
     if (LgripInfo.currentPosition.head != LgripInfo.homePosition.head) {
       log.error("LgripHcd : gripper is not at the home position")
 
-      val targetPosition: Parameter[Int] = LgripInfo.targetPositionKey.set(LgripInfo.homePosition.head)
-      val sc1: Setup                     = Setup(prefix, CommandName("move"), Some(LgripInfo.obsId)).madd(targetPosition)
+      // val targetPosition: Parameter[Int] = LgripInfo.targetPositionKey.set(LgripInfo.homePosition.head)
+      // val sc1: Setup                     = Setup(prefix, CommandName("move"), Some(LgripInfo.obsId)).madd(targetPosition)
 
-      val validateResponse = validateCommand(Id(), sc1)
-      validateResponse match {
-        case Accepted(runId) => onSubmit(runId, sc1)
-        case Invalid(runId, commandissue) => {
-          log.error("LgripHcd : Validation Failure")
-          // log.info(s"${validateResponse.commandissue}")
-          log.error(s"$commandissue")
-          Invalid(runId, commandissue)
-        }
-      }
+      // val validateResponse = validateCommand(Id(), sc1)
+      // validateResponse match {
+      //   case Accepted(runId) => onSubmit(runId, sc1)
+      //   case Invalid(runId, commandissue) => {
+      //     log.error("LgripHcd : Validation Failure")
+      //     // log.info(s"${validateResponse.commandissue}")
+      //     log.error(s"$commandissue")
+      //     Invalid(runId, commandissue)
+      //   }
+      // }
     }
     else {
-      log.info("LgripHcd : Gripper is at exchange position")
+      log.info("LgripHcd : Gripper is at home position")
     }
   }
 

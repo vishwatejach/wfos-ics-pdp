@@ -83,25 +83,25 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
       }
       case LocationRemoved(connection) => log.info("Location Removed")
     }
-    // if (rgripHcdCS != None && lgripHcdCS != None) {
-    //   log.info("Bgrx Assembly : All HCDs are successfully initialized")
-    //   sendCommand(Id("bgrx"))
-    // }
-  }
-
-  private def sendCommand(runId: Id): SubmitResponse = {
-    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(30)
-    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
-    val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
-
-    val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
-
-    val validateResponse = validateCommand(runId, command)
-    validateResponse match {
-      case Accepted(runId)       => onSubmit(runId, command)
-      case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
+    if (rgripHcdCS != None && lgripHcdCS != None) {
+      log.info("Bgrx Assembly : All HCDs are successfully initialized")
+      // sendCommand(Id("bgrx"))
     }
   }
+
+  // private def sendCommand(runId: Id): SubmitResponse = {
+  //   val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(RgripInfo.exchangeAngle.head)
+  //   val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
+  //   val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
+
+  //   val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
+
+  //   val validateResponse = validateCommand(runId, command)
+  //   validateResponse match {
+  //     case Accepted(runId)       => onSubmit(runId, command)
+  //     case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
+  //   }
+  // }
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = {
     log.info(s"Bgrx Assembly : Command - $runId is being validated")

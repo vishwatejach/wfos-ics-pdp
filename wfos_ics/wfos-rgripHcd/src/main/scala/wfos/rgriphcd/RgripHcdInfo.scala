@@ -9,11 +9,11 @@ object RgripInfo {
   val exchangeAngleKey: Key[Int]    = KeyType.IntKey.make("exchangeAngle")
   val exchangeAngle: Parameter[Int] = exchangeAngleKey.set(35)
 
-  val homeAngleKey: Key[Int]    = KeyType.IntKey.make("homeAngle")
-  val homeAngle: Parameter[Int] = homeAngleKey.set(35)
+  // val homeAngleKey: Key[Int]    = KeyType.IntKey.make("homeAngle")
+  // val homeAngle: Parameter[Int] = homeAngleKey.set(28)
 
   val currentAngleKey: Key[Int]    = KeyType.IntKey.make("currentAngle")
-  var currentAngle: Parameter[Int] = currentAngleKey.set(35)
+  var currentAngle: Parameter[Int] = currentAngleKey.set(28)
 
   val targetAngleKey: Key[Int]    = KeyType.IntKey.make("targetAngle")
   val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")

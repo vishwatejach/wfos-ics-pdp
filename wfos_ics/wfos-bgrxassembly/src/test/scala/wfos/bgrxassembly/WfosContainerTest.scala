@@ -62,8 +62,11 @@ class WfosContainerTest extends ScalaTestFrameworkTestKit(LocationServer, EventS
     val bgrxCS         = CommandServiceFactory.make(akkaLocation)
     val command: Setup = Setup(Prefix("wfos.bgrxAssembly"), CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
 
-    val response = bgrxCS.submit(command)
-    Thread.sleep(5000)
+    // val response = bgrxCS.submit(command)
+    // Thread.sleep(5000)
+    // response shouldBe a[Started]
+
+    val response = Await.result(bgrxCS.submit(command), 5000.millis)
     response shouldBe a[Started]
   }
 }
