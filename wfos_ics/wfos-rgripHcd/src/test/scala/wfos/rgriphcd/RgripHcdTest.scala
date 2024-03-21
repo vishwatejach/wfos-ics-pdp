@@ -34,26 +34,26 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
   }
 
   test("HCD should be locatable using Location Service") {
-    val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.rgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     akkaLocation.connection shouldBe connection
   }
 
   test("HCD should not accept Observe commands") {
-    val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.rgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
 
-    val command: Observe = Observe(Prefix("wfos.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId))
+    val command: Observe = Observe(Prefix("wfos.bgrxAssembly.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId))
     val response         = Await.result(rgripHcdCS.submit(command), 5000.millis)
 
     response.asInstanceOf[Invalid].issue shouldBe a[WrongCommandTypeIssue]
   }
 
   test("HCD should be able to validate a command and return Completed type response") {
-    val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.rgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
@@ -62,14 +62,15 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
-    val command: Setup = Setup(Prefix("wfos.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
+    val command: Setup =
+      Setup(Prefix("wfos.bgrxAssembly.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
 
     val response = Await.result(rgripHcdCS.submit(command), 5000.millis)
     response shouldBe a[Completed]
   }
 
   test("HCD should be able to execute a command and return Completed response") {
-    val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.rgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
@@ -78,7 +79,8 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
     val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
-    val command: Setup = Setup(Prefix("wfos.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
+    val command: Setup =
+      Setup(Prefix("wfos.bgrxAssembly.rgriphcd"), CommandName("move"), Some(RgripInfo.obsId)).madd(targetAngle, gratingMode, cw)
 
     val response = Await.result(rgripHcdCS.submit(command), 5000.millis)
     response shouldBe a[Completed]

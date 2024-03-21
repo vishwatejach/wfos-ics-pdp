@@ -40,10 +40,10 @@ class WfosContainerTest extends ScalaTestFrameworkTestKit(LocationServer, EventS
     val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly"), ComponentType.Assembly))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
-    val rConnection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val rConnection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.rgriphcd"), ComponentType.HCD))
     val rAkkaLocation = Await.result(locationService.resolve(rConnection, 10.seconds), 10.seconds).get
 
-    val lConnection   = AkkaConnection(ComponentId(Prefix("wfos.lgriphcd"), ComponentType.HCD))
+    val lConnection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.lgriphcd"), ComponentType.HCD))
     val lAkkaLocation = Await.result(locationService.resolve(lConnection, 10.seconds), 10.seconds).get
 
     akkaLocation.connection shouldBe connection

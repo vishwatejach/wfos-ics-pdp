@@ -70,11 +70,11 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
       case LocationUpdated(location) => {
 
         location.connection match {
-          case AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "rgriphcd"), _)) => {
+          case AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "bgrxAssembly.rgriphcd"), _)) => {
             log.info("Bgrx Assembly : Creating command service to RgripHcd")
             rgripHcdCS = Some(CommandServiceFactory.make(location))
           }
-          case AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "lgriphcd"), _)) => {
+          case AkkaConnection(ComponentId(Prefix(Subsystem.WFOS, "bgrxAssembly.lgriphcd"), _)) => {
             log.info("Bgrx Assembly : Creating command service to LgripHcd")
             lgripHcdCS = Some(CommandServiceFactory.make(location))
           }
@@ -85,23 +85,23 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     }
     if (rgripHcdCS != None && lgripHcdCS != None) {
       log.info("Bgrx Assembly : All HCDs are successfully initialized")
-      // sendCommand(Id("bgrx"))
+      sendCommand(Id("bgrx"))
     }
   }
 
-  // private def sendCommand(runId: Id): SubmitResponse = {
-  //   val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(RgripInfo.exchangeAngle.head)
-  //   val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
-  //   val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
+  private def sendCommand(runId: Id): SubmitResponse = {
+    val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(RgripInfo.exchangeAngle.head)
+    val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
+    val cw: Parameter[Int]             = RgripInfo.cwKey.set(6000)
 
-  //   val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
+    val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetAngle, gratingMode, cw)
 
-  //   val validateResponse = validateCommand(runId, command)
-  //   validateResponse match {
-  //     case Accepted(runId)       => onSubmit(runId, command)
-  //     case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
-  //   }
-  // }
+    val validateResponse = validateCommand(runId, command)
+    validateResponse match {
+      case Accepted(runId)       => onSubmit(runId, command)
+      case Invalid(runId, error) => Invalid(runId, UnsupportedCommandIssue(error.reason))
+    }
+  }
 
   override def validateCommand(runId: Id, controlCommand: ControlCommand): ValidateCommandResponse = {
     log.info(s"Bgrx Assembly : Command - $runId is being validated")
@@ -147,7 +147,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
     val subscriber = eventService.defaultSubscriber
     subscriber.subscribeCallback(
-      Set(EventKey(Prefix("wfos.lgriphcd"), EventName("LgripHcd_status"))),
+      Set(EventKey(Prefix("wfos.bgrxAssembly.lgriphcd"), EventName("LgripHcd_status"))),
       event => {
         log.info(s"$event")
       }
@@ -164,7 +164,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   }
 
   private def moveRgripHcd(runId: Id, setup: Setup): Unit = {
-    val connection   = AkkaConnection(ComponentId(Prefix("wfos.rgriphcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.rgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     rgripHcdCS = Some(CommandServiceFactory.make(akkaLocation))
@@ -199,7 +199,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
     val targetPosition = LgripInfo.targetPositionKey.set(100)
     val command: Setup = Setup(sourcePrefix, CommandName("move"), Some(obsId)).madd(targetPosition)
 
-    val connection   = AkkaConnection(ComponentId(Prefix("wfos.lgriphcd"), ComponentType.HCD))
+    val connection   = AkkaConnection(ComponentId(Prefix("wfos.bgrxAssembly.lgriphcd"), ComponentType.HCD))
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     lgripHcdCS = Some(CommandServiceFactory.make(akkaLocation))
