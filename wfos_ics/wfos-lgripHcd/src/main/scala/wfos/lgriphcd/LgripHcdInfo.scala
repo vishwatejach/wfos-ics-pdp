@@ -19,8 +19,9 @@ object LgripInfo {
   // val cwKey: Key[Int]             = KeyType.IntKey.make("cw")
 
   // event parameters
-  val stageKey: Key[String]  = KeyType.StringKey.make("stage")
-  val statusKey: Key[String] = KeyType.StringKey.make("status")
+  val stageKey: Key[String]   = KeyType.StringKey.make("stage")
+  val statusKey: Key[String]  = KeyType.StringKey.make("status")
+  val messageKey: Key[String] = KeyType.StringKey.make("message")
 
   // ranges of targetPosition
   val minTargetPositionKey: Key[Int]    = KeyType.IntKey.make("minTargetPosition")

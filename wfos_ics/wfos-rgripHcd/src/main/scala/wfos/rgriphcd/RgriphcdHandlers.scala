@@ -15,6 +15,7 @@ import csw.time.core.models.UTCTime
 
 import scala.concurrent.{ExecutionContextExecutor}
 import wfos.rgriphcd.RgripInfo
+import csw.params.events.{SystemEvent, EventName}
 
 /**
  * Domain specific logic should be written in below handlers.
@@ -30,6 +31,7 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   implicit val ec: ExecutionContextExecutor = ctx.executionContext
   private val log                           = loggerFactory.getLogger
   private val prefix                        = cswCtx.componentInfo.prefix
+  private val publisher                     = eventService.defaultPublisher
 
   // Called when the component is created
   override def initialize(): Unit = {
@@ -75,11 +77,17 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
       case setup: Setup => {
         val targetAngle = setup(RgripInfo.targetAngleKey)
         if (targetAngle.head != RgripInfo.currentAngle.head) {
+          log.info("RgripHcd : Validation Successful")
           Accepted(runId)
         }
         else {
-          log.info(s"RgripHcd: Gripper is already at target position")
-          Accepted(runId)
+          log.error(s"RgripHcd: Gripper is already at target position")
+          val stage  = RgripInfo.stageKey.set("Validation")
+          val status = RgripInfo.statusKey.set("Failure")
+          val event  = SystemEvent(componentInfo.prefix, EventName("RgripHcd_status")).madd(stage, status)
+          publisher.publish(event)
+
+          Invalid(runId, ParameterValueOutOfRangeIssue("RgripHcd: Gripper is already at target angle"))
         }
       }
       case _: Observe => Invalid(runId, WrongCommandTypeIssue("RgripHcd accepts only setup commands"))
@@ -110,18 +118,40 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
         while (RgripInfo.currentAngle.head != targetAngle.head) {
           RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head - 1)
           log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
+          // Publish the rotation event
+          onRotation(runId, RgripInfo.currentAngle.head)
           Thread.sleep(delay)
         }
       }
       else if (RgripInfo.currentAngle.head < targetAngle.head) {
         while (RgripInfo.currentAngle.head != targetAngle.head) {
           RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head + 1)
-          log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
+          // log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
+          // Publish the rotation event
+          onRotation(runId, RgripInfo.currentAngle.head)
           Thread.sleep(delay)
         }
       }
+
+      val stage  = RgripInfo.stageKey.set("Setup")
+      val status = RgripInfo.statusKey.set("Completed")
+      val event  = SystemEvent(componentInfo.prefix, EventName("RgripHcd_status")).madd(stage, status)
+      publisher.publish(event)
+
       Completed(runId)
     }
+  }
+
+  private def createRotationEvent(angle: Int): SystemEvent = {
+    // Create a SystemEvent representing the rotation of the gripper
+    SystemEvent(componentInfo.prefix, EventName("RgripRotationEvent"))
+      .madd(RgripInfo.angleKey.set(angle))
+  }
+
+  private def onRotation(runId: Id, angle: Int): Unit = {
+    // Publish the rotation event
+    val event = createRotationEvent(angle)
+    publisher.publish(event)
   }
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}
