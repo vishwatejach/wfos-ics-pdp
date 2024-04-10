@@ -57,6 +57,25 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
+    val log        = LoggerFactory.getLogger(getClass)
+
+    val expectedStageKey: Key[String]    = KeyType.StringKey.make("expectedStage")
+    val expectedStage: Parameter[String] = expectedStageKey.set("Validation")
+
+    val expectedStatusKey: Key[String]    = KeyType.StringKey.make("expectedStatus")
+    val expectedStatus: Parameter[String] = expectedStatusKey.set("Failure")
+
+    val params: Set[Parameter[_]] = Set(expectedStage, expectedStatus)
+
+    val testSubscriber = eventService.defaultSubscriber
+    testSubscriber.subscribeCallback(
+      Set(EventKey(Prefix("wfos.bgrxAssembly.rgriphcd"), EventName("RgripHcd_status"))),
+      event => {
+        log.info("Rgrip test case 3 Event is Trigerred")
+        event shouldBe a[SystemEvent]
+        event.paramSet shouldBe params
+      }
+    )
 
     val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(28)
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")
@@ -74,6 +93,25 @@ class RgripHcdTest extends ScalaTestFrameworkTestKit(LocationServer, EventServer
     val akkaLocation = Await.result(locationService.resolve(connection, 10.seconds), 10.seconds).get
 
     val rgripHcdCS = CommandServiceFactory.make(akkaLocation)
+
+    val expectedStageKey: Key[String]    = KeyType.StringKey.make("expectedStage")
+    val expectedStage: Parameter[String] = expectedStageKey.set("Validation")
+
+    val expectedStatusKey: Key[String]    = KeyType.StringKey.make("expectedStatus")
+    val expectedStatus: Parameter[String] = expectedStatusKey.set("Failure")
+    val log                               = LoggerFactory.getLogger(getClass)
+
+    val params: Set[Parameter[_]] = Set(expectedStage, expectedStatus)
+
+    val testSubscriber = eventService.defaultSubscriber
+    testSubscriber.subscribeCallback(
+      Set(EventKey(Prefix("wfos.bgrxAssembly.rgriphcd"), EventName("RgripHcd_status"))),
+      event => {
+        log.info("Rgrip test case 4 Event is Trigerred")
+        event shouldBe a[SystemEvent]
+        event.paramSet shouldBe params
+      }
+    )
 
     val targetAngle: Parameter[Int]    = RgripInfo.targetAngleKey.set(35)
     val gratingMode: Parameter[String] = RgripInfo.gratingModeKey.set("bgid3")

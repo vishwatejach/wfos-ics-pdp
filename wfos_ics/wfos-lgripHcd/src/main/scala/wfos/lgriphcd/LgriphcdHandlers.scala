@@ -104,25 +104,33 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
     val delay: Int                     = 10
     log.info(s"LgripHcd : Gripper is at ${LgripInfo.currentPosition.head}cm")
 
-    if (LgripInfo.currentPosition.head > targetPosition.head) {
-      while (LgripInfo.currentPosition.head != targetPosition.head) {
-        LgripInfo.currentPosition = LgripInfo.currentPositionKey.set(LgripInfo.currentPosition.head - 1)
-        if (LgripInfo.currentPosition.head % 10 == 0) log.info(s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}")
-        Thread.sleep(delay)
+    while (LgripInfo.currentPosition.head != targetPosition.head) {
+      LgripInfo.currentPosition = LgripInfo.currentPositionKey.set(
+        if (LgripInfo.currentPosition.head < targetPosition.head) LgripInfo.currentPosition.head + 1
+        else LgripInfo.currentPosition.head - 1
+      )
+
+      if (LgripInfo.currentPosition.head % 10 == 0) {
+        val message = s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}"
+        // log.info(message)
+        // Create and publish the event
+        val event = createMovementEvent(message)
+        publisher.publish(event)
       }
+      Thread.sleep(delay)
     }
-    else if (LgripInfo.currentPosition.head < targetPosition.head) {
-      while (LgripInfo.currentPosition.head != targetPosition.head) {
-        LgripInfo.currentPosition = LgripInfo.currentPositionKey.set(LgripInfo.currentPosition.head + 1)
-        if (LgripInfo.currentPosition.head % 10 == 0) log.info(s"LgripHcd : Moving gripper to ${LgripInfo.currentPosition.head}")
-        Thread.sleep(delay)
-      }
-    }
+
     val stage  = LgripInfo.stageKey.set("Setup")
     val status = LgripInfo.statusKey.set("Completed")
     val event  = SystemEvent(componentInfo.prefix, EventName("LgripHcd_status")).madd(stage, status)
     publisher.publish(event)
     Completed(runId)
+  }
+
+  private def createMovementEvent(message: String): SystemEvent = {
+    // Create a SystemEvent representing the movement of the gripper
+    SystemEvent(componentInfo.prefix, EventName("LgripMovementEvent"))
+      .madd(LgripInfo.messageKey.set(message))
   }
 
   override def onOneway(runId: Id, controlCommand: ControlCommand): Unit = {}

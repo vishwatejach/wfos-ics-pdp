@@ -19,6 +19,11 @@ object RgripInfo {
   val gratingModeKey: Key[String] = KeyType.StringKey.make("gratingMode")
   val cwKey: Key[Int]             = KeyType.IntKey.make("cw")
 
+  // event parameters
+  val stageKey: Key[String]  = KeyType.StringKey.make("stage")
+  val statusKey: Key[String] = KeyType.StringKey.make("status")
+  val angleKey: Key[Int]     = KeyType.IntKey.make("angle")
+
   // ranges of targetAngle
   val minTargetAngleKey: Key[Int]    = KeyType.IntKey.make("minTargetAngle")
   val minTargetAngle: Parameter[Int] = minTargetAngleKey.set(0)

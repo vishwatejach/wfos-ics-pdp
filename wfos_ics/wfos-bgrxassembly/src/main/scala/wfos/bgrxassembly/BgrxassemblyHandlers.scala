@@ -145,13 +145,25 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
     log.info(s"Bgrx Assembly : handling command: $runId")
 
+    val gripperMovementEventKey = EventKey(Prefix("wfos.bgrxAssembly.lgriphcd"), EventName("LgripMovementEvent"))
+    val rgripRotationEventKey   = EventKey(Prefix("wfos.bgrxAssembly.rgriphcd"), EventName("RgripRotationEvent"))
+
     val subscriber = eventService.defaultSubscriber
     subscriber.subscribeCallback(
-      Set(EventKey(Prefix("wfos.bgrxAssembly.lgriphcd"), EventName("LgripHcd_status"))),
+      Set(gripperMovementEventKey),
       event => {
-        log.info(s"$event")
+        log.info(s"Received GripperMovementEvent: LgripHcd :Moving gripper to ${LgripInfo.currentPosition.head}")
+        // Handle the GripperMovementEvent here
       }
     )
+    subscriber.subscribeCallback(
+      Set(rgripRotationEventKey),
+      event => {
+        log.info(s"Received RgripRotationEvent: RgripHcd: Rotating gripper to${RgripInfo.currentAngle.head}")
+        // Handle the RgripRotationEvent here
+      }
+    )
+
     controlCommand match {
       case setup: Setup => onSetup(runId, setup)
       case _: Observe   => Invalid(runId, WrongCommandTypeIssue("This assembly can't handle observe commands"))
