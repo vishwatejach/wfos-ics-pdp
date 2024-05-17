@@ -1,10 +1,15 @@
 package wfos.bgrxassembly
 
+import akka.Done
 import akka.actor.typed.ActorSystem
+import com.typesafe.config._
 import akka.actor.typed.scaladsl.ActorContext
 import csw.command.client.messages.TopLevelActorMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
+import csw.location.client.scaladsl.HttpLocationServiceFactory
+import csw.alarm.client.AlarmServiceFactory
+import csw.alarm.api.scaladsl.{AlarmAdminService, AlarmService, AlarmSubscription}
 import csw.params.commands.CommandResponse._
 import csw.params.commands.{ControlCommand, CommandName, Setup, Observe}
 import csw.params.commands.CommandIssue.{UnsupportedCommandIssue, RequiredHCDUnavailableIssue, WrongCommandTypeIssue}
@@ -61,6 +66,7 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   override def initialize(): Unit = {
     log.info("Initializing BgrxAssembly")
+
   }
 
   override def onLocationTrackingEvent(trackingEvent: TrackingEvent): Unit = { // no need to create CS here
@@ -144,6 +150,14 @@ class BgrxassemblyHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswC
 
   override def onSubmit(runId: Id, controlCommand: ControlCommand): SubmitResponse = {
     log.info(s"Bgrx Assembly : handling command: $runId")
+
+    val locationService             = HttpLocationServiceFactory.makeLocalClient
+    val adminAPI2                   = new AlarmServiceFactory().makeAdminApi(locationService)
+    val adminAPI: AlarmAdminService = adminAPI2
+
+    val resource               = "wfos-bgrxassembly/src/main/resources/valid-alarms.conf"
+    val alarmsConfig: Config   = ConfigFactory.parseResources(resource)
+    val result2F: Future[Done] = adminAPI.initAlarms(alarmsConfig)
 
     val gripperMovementEventKey = EventKey(Prefix("wfos.bgrxAssembly.lgriphcd"), EventName("LgripMovementEvent"))
     val rgripRotationEventKey   = EventKey(Prefix("wfos.bgrxAssembly.rgriphcd"), EventName("RgripRotationEvent"))

@@ -1,10 +1,15 @@
 package wfos.rgriphcd
 
+import akka.Done
 import akka.actor.typed.scaladsl.ActorContext
 import csw.command.client.messages.TopLevelActorMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
 import csw.location.api.models.TrackingEvent
+import csw.alarm.models.Key.AlarmKey
+import csw.alarm.api.scaladsl.{AlarmAdminService, AlarmService, AlarmSubscription}
+import csw.alarm.models.AlarmSeverity.Okay
+import csw.prefix.models.Prefix
 import csw.params.commands.CommandResponse._
 import csw.params.core.models.{Id}
 import csw.params.commands.CommandIssue.{ParameterValueOutOfRangeIssue, UnsupportedCommandIssue, WrongCommandTypeIssue}
@@ -13,7 +18,7 @@ import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
 import csw.params.core.generics.{Parameter}
 import csw.time.core.models.UTCTime
 
-import scala.concurrent.{ExecutionContextExecutor}
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import wfos.rgriphcd.RgripInfo
 import csw.params.events.{SystemEvent, EventName}
 
@@ -32,6 +37,7 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   private val log                           = loggerFactory.getLogger
   private val prefix                        = cswCtx.componentInfo.prefix
   private val publisher                     = eventService.defaultPublisher
+  private val clientAPI                     = cswCtx.alarmService
 
   // Called when the component is created
   override def initialize(): Unit = {
@@ -103,6 +109,8 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   }
 
   private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
+    val alarmKey                    = AlarmKey(Prefix("wfos.bgrxAssembly.rgriphcd"), "alarmTriggeredOnRgrip")
+    val resultF: Future[Done]       = clientAPI.setSeverity(alarmKey, Okay)
     val targetAngle: Parameter[Int] = setup(RgripInfo.targetAngleKey)
     if (RgripInfo.currentAngle.head == targetAngle.head) {
       Completed(runId)
@@ -115,20 +123,37 @@ class RgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
       // Started(runId)
 
       if (RgripInfo.currentAngle.head > targetAngle.head) {
+        var timeElapsed = 0L // Variable to track elapsed time
         while (RgripInfo.currentAngle.head != targetAngle.head) {
           RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head - 1)
           log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
           // Publish the rotation event
           onRotation(runId, RgripInfo.currentAngle.head)
+
+          // Check if 9 seconds have elapsed since loop start
+          val currentTime = System.currentTimeMillis()
+          if (currentTime - timeElapsed >= 9000) {
+            clientAPI.setSeverity(alarmKey, Okay)
+            timeElapsed = currentTime // Reset timer for next interval
+          }
           Thread.sleep(delay)
         }
       }
       else if (RgripInfo.currentAngle.head < targetAngle.head) {
+        var timeElapsed = 0L // Variable to track elapsed time
         while (RgripInfo.currentAngle.head != targetAngle.head) {
           RgripInfo.currentAngle = RgripInfo.currentAngleKey.set(RgripInfo.currentAngle.head + 1)
           // log.info(s"RgripHcd: Rotating gripper to ${RgripInfo.currentAngle.head}")
           // Publish the rotation event
           onRotation(runId, RgripInfo.currentAngle.head)
+
+          // Check if 9 seconds have elapsed since loop start
+          val currentTime = System.currentTimeMillis()
+          if (currentTime - timeElapsed >= 9000) {
+            clientAPI.setSeverity(alarmKey, Okay)
+            timeElapsed = currentTime // Reset timer for next interval
+          }
+
           Thread.sleep(delay)
         }
       }

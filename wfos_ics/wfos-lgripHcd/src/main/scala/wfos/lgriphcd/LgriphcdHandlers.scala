@@ -1,9 +1,14 @@
 package wfos.lgriphcd
 
+import akka.Done
 import akka.actor.typed.scaladsl.ActorContext
 import csw.command.client.messages.TopLevelActorMessage
 import csw.framework.models.CswContext
 import csw.framework.scaladsl.ComponentHandlers
+import csw.alarm.models.Key.AlarmKey
+import csw.alarm.models.AlarmSeverity.Okay
+import csw.alarm.api.scaladsl.{AlarmAdminService, AlarmService, AlarmSubscription}
+import csw.prefix.models.Prefix
 import csw.location.api.models.TrackingEvent
 import csw.params.commands.CommandResponse._
 import csw.params.core.models.{Id}
@@ -13,7 +18,7 @@ import csw.params.commands.{ControlCommand, CommandName, Observe, Setup}
 import csw.params.core.generics.Parameter
 import csw.time.core.models.UTCTime
 
-import scala.concurrent.{ExecutionContextExecutor}
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import wfos.lgriphcd.LgripInfo
 import csw.params.events.{SystemEvent, EventName}
 
@@ -32,6 +37,7 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   private val log                           = loggerFactory.getLogger
   private val prefix                        = cswCtx.componentInfo.prefix
   private val publisher                     = eventService.defaultPublisher
+  private val clientAPI                     = cswCtx.alarmService
 
   // val rgripHcd = new RgripHcd()
 
@@ -98,12 +104,13 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
   }
 
   private def onSetup(runId: Id, setup: Setup): SubmitResponse = {
-
+    val alarmKey              = AlarmKey(Prefix("wfos.bgrxAssembly.lgriphcd"), "alarmTriggeredOnLgrip")
+    val resultF: Future[Done] = clientAPI.setSeverity(alarmKey, Okay)
     log.info(s"LgripHcd : Executing the received command with runId - $runId")
     val targetPosition: Parameter[Int] = setup(LgripInfo.targetPositionKey)
     val delay: Int                     = 10
     log.info(s"LgripHcd : Gripper is at ${LgripInfo.currentPosition.head}cm")
-
+    var timeElapsed = 0L // Variable to track elapsed time
     while (LgripInfo.currentPosition.head != targetPosition.head) {
       LgripInfo.currentPosition = LgripInfo.currentPositionKey.set(
         if (LgripInfo.currentPosition.head < targetPosition.head) LgripInfo.currentPosition.head + 1
@@ -116,6 +123,13 @@ class LgriphcdHandlers(ctx: ActorContext[TopLevelActorMessage], cswCtx: CswConte
         // Create and publish the event
         val event = createMovementEvent(message)
         publisher.publish(event)
+      }
+
+      // Check if 9 seconds have elapsed since loop start
+      val currentTime = System.currentTimeMillis()
+      if (currentTime - timeElapsed >= 9000) {
+        clientAPI.setSeverity(alarmKey, Okay)
+        timeElapsed = currentTime // Reset timer for next interval
       }
       Thread.sleep(delay)
     }
